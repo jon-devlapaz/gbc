@@ -1,0 +1,6 @@
+body { font-family: ui-monospace, Menlo, monospace; max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+header h1 { font-size: 1.25rem; }
+section { border: 1px solid #ddd; padding: 1rem; margin: 1rem 0; }
+h3 { margin-top: 0; }
+code { background: #f4f4f4; padding: 0 .25rem; }
+button { padding: .4rem .8rem; }

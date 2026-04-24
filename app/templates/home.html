@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<p>Scan <code>~/.claude/</code> to classify and audit entries.</p>
+<form method="post" action="/scan" hx-post="/scan" hx-target="main">
+  <button type="submit">New scan</button>
+</form>
+{% if last_scan %}
+  <p>Last scan: #{{ last_scan.id }} at {{ last_scan.started_at }}</p>
+  <p><a href="/review/{{ last_scan.id }}">Review</a></p>
+{% endif %}
+{% endblock %}

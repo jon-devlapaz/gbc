@@ -8,6 +8,7 @@ dependencies = [
   "jinja2>=3.1",
   "pydantic>=2.6",
   "anthropic>=0.90",
+  "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
