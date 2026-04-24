@@ -11,9 +11,11 @@
 </head>
 <body>
   <header>
-    <span id="status-led" class="led led-unknown" data-tip="reasoner status"></span>
     <h1>claude-workspace-tool</h1>
-    <span id="status-label" class="status-label">—</span>
+    <div class="status-badge" data-tip="reasoner status">
+      <span id="status-led" class="led led-unknown"></span>
+      <span id="status-label" class="status-label">—</span>
+    </div>
   </header>
   <main>{% block content %}{% endblock %}</main>
 
