@@ -1,0 +1,96 @@
+{% if not reasoner_enabled %}
+<div class="banner banner-info">
+  <strong>REASONER OFFLINE</strong> — set <code>ANTHROPIC_API_KEY</code> to get LLM purpose guesses.
+</div>
+{% endif %}
+
+{% if result %}
+<div class="banner {% if result.armed and result.executed %}banner-success{% elif result.armed %}banner-warn{% else %}banner-info{% endif %}">
+  <strong>
+    {% if result.armed and result.executed %}EXECUTED
+    {% elif result.armed %}ARMED RUN — NOTHING DELETED
+    {% else %}DRY RUN{% endif %}
+  </strong>
+  — armed: {{ result.armed }}, actions: {{ result.actions|length }}, executed: {{ result.executed|length }}
+  {% if result.archive_path %}<br>Archive: <code>{{ result.archive_path }}</code>{% endif %}
+  <details>
+    <summary>action log</summary>
+    <ul>
+      {% for a in result.actions %}
+        <li>{{ a.state }} — {{ a.path }}{% if a.error_detail %} ({{ a.error_detail }}){% endif %}</li>
+      {% endfor %}
+    </ul>
+  </details>
+</div>
+{% endif %}
+
+<h2>Scan #{{ scan_id }}</h2>
+
+{% for group_label, status in groups %}
+  {% set entries = by_status[status] %}
+  {% if entries or status == "kill_candidate" %}
+  <section class="group group-{{ status }}">
+    <h3>{{ group_label }} ({{ entries|length }})</h3>
+
+    {% if status == "kill_candidate" %}
+      <form method="post" action="/execute/{{ scan_id }}" onsubmit="return confirmArmed(this);">
+        {% if entries %}
+        <div class="bulk-controls">
+          <button type="button" onclick="toggleAll(this, true)">Select all</button>
+          <button type="button" onclick="toggleAll(this, false)">None</button>
+        </div>
+        <ul class="entry-list">
+          {% for e in entries %}
+            <li>
+              <label>
+                <input type="checkbox" name="entry_id" value="{{ e.id }}">
+                <strong>{{ e.path.split('/')[-1] }}</strong>
+                <span class="meta">{{ e.kind }} · {{ e.size_bytes|size }} · {{ e.mtime|age }}</span>
+                <span class="purpose">{{ e.purpose or "—" }}</span>
+                <button type="button" class="explain-btn"
+                        hx-post="/explain/{{ e.id }}" hx-target="closest .purpose" hx-swap="innerHTML">?</button>
+              </label>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="danger-pill">
+          <label class="armed-label">
+            <input type="checkbox" name="armed" value="true"> Armed (actually delete)
+          </label>
+          <button type="submit" class="danger-btn">Execute</button>
+        </div>
+        {% else %}
+        <p class="muted">No kill-candidates in this scan.</p>
+        {% endif %}
+      </form>
+    {% else %}
+      <ul class="entry-list">
+        {% for e in entries %}
+          <li>
+            <strong>{{ e.path.split('/')[-1] }}</strong>
+            <span class="meta">{{ e.kind }} · {{ e.size_bytes|size }} · {{ e.mtime|age }}</span>
+            <span class="purpose">{{ e.purpose or e.reason }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+  {% endif %}
+{% endfor %}
+
+<script>
+function toggleAll(btn, checked) {
+  const form = btn.closest('form');
+  form.querySelectorAll('input[name="entry_id"]').forEach(cb => cb.checked = checked);
+}
+function confirmArmed(form) {
+  const armed = form.querySelector('input[name="armed"]').checked;
+  if (!armed) return true; // dry-run, no confirm
+  const selected = form.querySelectorAll('input[name="entry_id"]:checked').length;
+  if (selected === 0) {
+    alert("No entries selected.");
+    return false;
+  }
+  return confirm(`ARMED: about to archive and delete ${selected} entr${selected === 1 ? 'y' : 'ies'}. Continue?`);
+}
+</script>

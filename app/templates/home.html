@@ -1,11 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
+{% if not reasoner_enabled %}
+<div class="banner banner-info">
+  <strong>REASONER OFFLINE</strong> — purpose guesses disabled. Set <code>ANTHROPIC_API_KEY</code> env var and restart to enable.
+</div>
+{% endif %}
+
 <p>Scan <code>~/.claude/</code> to classify and audit entries.</p>
-<form method="post" action="/scan" hx-post="/scan" hx-target="main">
+
+<form method="post" action="/scan" hx-post="/scan" hx-target="main" hx-indicator="#scan-spinner">
   <button type="submit">New scan</button>
+  <span id="scan-spinner" class="htmx-indicator">▒▓█ scanning… █▓▒</span>
 </form>
+
 {% if last_scan %}
-  <p>Last scan: #{{ last_scan.id }} at {{ last_scan.started_at }}</p>
-  <p><a href="/review/{{ last_scan.id }}">Review</a></p>
+<p class="muted">Last scan: #{{ last_scan.id }} at {{ last_scan.started_at }} — <a href="/review/{{ last_scan.id }}">Review</a></p>
 {% endif %}
 {% endblock %}

@@ -280,6 +280,128 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+/* ============ Banners (flash messages) ============ */
+
+.banner {
+  border: 2px solid var(--lcd-0);
+  padding: 10px 14px;
+  margin: 0 0 14px;
+  background: var(--lcd-2);
+  font-family: var(--font-lcd);
+  box-shadow: 3px 3px 0 var(--lcd-0);
+}
+.banner strong { font-family: var(--font-pixel); font-size: 10px; letter-spacing: 1px; }
+.banner code { background: var(--lcd-0); color: var(--lcd-3); }
+.banner details { margin-top: 8px; font-size: 16px; }
+.banner details summary { cursor: pointer; font-family: var(--font-pixel); font-size: 8px; }
+.banner-info    { /* default */ }
+.banner-success { border-color: var(--lcd-0); background: var(--lcd-2); }
+.banner-warn    { border-color: var(--led-red); box-shadow: 3px 3px 0 var(--led-red); }
+.banner-warn strong { color: var(--led-red); }
+
+/* ============ Entry list (meta/purpose/explain) ============ */
+
+.entry-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+}
+.entry-list li::before { flex-shrink: 0; }
+.entry-list li label { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+.meta {
+  font-family: var(--font-lcd);
+  font-size: 14px;
+  color: var(--lcd-1);
+}
+
+.purpose {
+  flex: 1 1 300px;
+  font-family: var(--font-lcd);
+  font-size: 16px;
+  color: var(--lcd-1);
+  font-style: italic;
+}
+
+.explain-btn {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  padding: 4px 8px;
+  margin: 0;
+  box-shadow: 2px 2px 0 var(--lcd-1);
+}
+.explain-btn::before { content: ""; }
+
+/* ============ Bulk controls ============ */
+
+.bulk-controls {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.bulk-controls button {
+  font-size: 8px;
+  padding: 4px 10px;
+  margin: 0;
+  box-shadow: 2px 2px 0 var(--lcd-1);
+}
+.bulk-controls button::before { content: ""; }
+
+/* ============ Danger pill (armed + execute) ============ */
+
+.danger-pill {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  margin-top: 16px;
+  border: 2px solid var(--led-red);
+  background: var(--lcd-3);
+  box-shadow: 4px 4px 0 var(--led-red);
+}
+
+.danger-pill .armed-label {
+  color: var(--led-red);
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  padding: 6px 8px;
+  margin: 0;
+  border: none;
+  background: transparent;
+}
+
+.danger-btn {
+  background: var(--led-red);
+  color: var(--lcd-3);
+  border-color: var(--led-red);
+  box-shadow: 3px 3px 0 var(--bezel);
+  margin: 0;
+}
+.danger-btn:hover { background: #a01818; box-shadow: 3px 3px 0 var(--led-red); }
+
+/* ============ HTMX spinner ============ */
+
+.htmx-indicator {
+  opacity: 0;
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: var(--lcd-0);
+  margin-left: 10px;
+  letter-spacing: 1px;
+}
+.htmx-request .htmx-indicator { opacity: 1; }
+.htmx-request.htmx-indicator  { opacity: 1; }
+
+/* ============ Misc ============ */
+
+.muted {
+  color: var(--lcd-1);
+  font-size: 16px;
+  font-style: italic;
+}
+
 /* ============ Utility ============ */
 
 ::selection { background: var(--lcd-0); color: var(--lcd-3); }

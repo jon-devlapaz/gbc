@@ -5,7 +5,7 @@ import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 from app import db as db_mod
 from app.classifier import classify
 from app.executor import Executor
+from app.formatting import format_age, format_size
 from app.models import Status
 from app.reasoner import Reasoner
 from app.scanner import walk
@@ -36,6 +37,10 @@ def _maybe_anthropic_client():
         return None
 
 
+def _is_htmx(request: Request) -> bool:
+    return request.headers.get("HX-Request") == "true"
+
+
 def create_app() -> FastAPI:
     app = FastAPI()
     claude_root = _env_path("CLAUDE_TOOL_CLAUDE_ROOT", Path.home() / ".claude")
@@ -45,18 +50,26 @@ def create_app() -> FastAPI:
     static_dir = Path(__file__).parent.parent / "static"
 
     templates = Jinja2Templates(directory=str(templates_dir))
+    templates.env.filters["size"] = format_size
+    templates.env.filters["age"] = format_age
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     anthropic_client = _maybe_anthropic_client()
+    reasoner_enabled = anthropic_client is not None
 
     def get_db() -> sqlite3.Connection:
         return db_mod.connect(db_path)
+
+    def _base_ctx() -> dict:
+        return {"reasoner_enabled": reasoner_enabled}
 
     @app.get("/", response_class=HTMLResponse)
     def home(request: Request):
         conn = get_db()
         row = conn.execute("SELECT id, started_at FROM scans ORDER BY id DESC LIMIT 1").fetchone()
-        return templates.TemplateResponse(request, "home.html", {"last_scan": row})
+        return templates.TemplateResponse(
+            request, "home.html", {**_base_ctx(), "last_scan": row}
+        )
 
     @app.post("/scan", response_class=HTMLResponse)
     def scan(request: Request):
@@ -69,7 +82,7 @@ def create_app() -> FastAPI:
 
         for entry in walk(claude_root):
             verdict = classify(entry)
-            purpose = reasoner.purpose(entry) if reasoner else "(reasoner disabled)"
+            purpose = reasoner.purpose(entry) if reasoner else None
             conn.execute(
                 "INSERT INTO entries(scan_id,path,kind,inode,size_bytes,mtime,file_count,sample_files,status,reason,purpose) "
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
@@ -79,12 +92,12 @@ def create_app() -> FastAPI:
             )
         conn.execute("UPDATE scans SET finished_at=? WHERE id=?", (datetime.now().isoformat(), scan_id))
         conn.commit()
-        return _render_review(request, templates, conn, scan_id, result=None)
+        return _render_review(request, templates, conn, scan_id, result=None, ctx=_base_ctx())
 
     @app.get("/review/{scan_id}", response_class=HTMLResponse)
     def review(request: Request, scan_id: int):
         conn = get_db()
-        return _render_review(request, templates, conn, scan_id, result=None)
+        return _render_review(request, templates, conn, scan_id, result=None, ctx=_base_ctx())
 
     @app.post("/execute/{scan_id}", response_class=HTMLResponse)
     async def execute(request: Request, scan_id: int):
@@ -99,7 +112,7 @@ def create_app() -> FastAPI:
         if armed and result.executed:
             write_taxonomy(conn, scan_id, data_dir / "taxonomy.md")
 
-        return _render_review(request, templates, conn, scan_id, result=result)
+        return _render_review(request, templates, conn, scan_id, result=result, ctx=_base_ctx())
 
     @app.post("/explain/{entry_id}", response_class=HTMLResponse)
     def explain(request: Request, entry_id: int):
@@ -108,7 +121,7 @@ def create_app() -> FastAPI:
         if not row:
             return HTMLResponse("(not found)", status_code=404)
         if anthropic_client is None:
-            return HTMLResponse("(reasoner disabled)")
+            return HTMLResponse("(reasoner disabled — set ANTHROPIC_API_KEY)")
         from app.models import Entry, EntryKind
         entry = Entry(
             path=row["path"], kind=EntryKind(row["kind"]), inode=row["inode"],
@@ -125,7 +138,7 @@ def create_app() -> FastAPI:
     return app
 
 
-def _render_review(request, templates, conn, scan_id, result):
+def _render_review(request, templates, conn, scan_id, result, ctx):
     rows = conn.execute(
         "SELECT * FROM entries WHERE scan_id=? ORDER BY path", (scan_id,)
     ).fetchall()
@@ -138,10 +151,11 @@ def _render_review(request, templates, conn, scan_id, result):
         ("Active (recent)", "active"),
         ("Harness-protected", "harness_protected"),
     ]
+    template_name = "_review_body.html" if _is_htmx(request) else "review.html"
     return templates.TemplateResponse(
         request,
-        "review.html",
-        {"scan_id": scan_id, "groups": groups, "by_status": by_status, "result": result},
+        template_name,
+        {**ctx, "scan_id": scan_id, "groups": groups, "by_status": by_status, "result": result},
     )
 
 

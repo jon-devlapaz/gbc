@@ -1,44 +1,4 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Scan #{{ scan_id }}</h2>
-
-{% for group_label, status in groups %}
-  <section>
-    <h3>{{ group_label }} ({{ by_status[status]|length }})</h3>
-    {% if status == "kill_candidate" %}
-      <form method="post" action="/execute/{{ scan_id }}">
-        <ul>
-          {% for e in by_status[status] %}
-            <li>
-              <label>
-                <input type="checkbox" name="entry_id" value="{{ e.id }}">
-                <strong>{{ e.path.split('/')[-1] }}</strong>
-                ({{ e.kind }}, {{ e.size_bytes }} bytes) — {{ e.purpose or "(no purpose)" }}
-              </label>
-            </li>
-          {% endfor %}
-        </ul>
-        <label><input type="checkbox" name="armed" value="true"> Armed (actually delete)</label>
-        <button type="submit">Execute</button>
-      </form>
-    {% else %}
-      <ul>
-        {% for e in by_status[status] %}
-          <li>{{ e.path.split('/')[-1] }} ({{ e.kind }}) — {{ e.purpose or e.reason }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  </section>
-{% endfor %}
-
-{% if result %}
-  <h3>Execute result</h3>
-  <p>Armed: {{ result.armed }}</p>
-  {% if result.archive_path %}<p>Archive: <code>{{ result.archive_path }}</code></p>{% endif %}
-  <ul>
-    {% for a in result.actions %}
-      <li>{{ a.state }} — {{ a.path }}{% if a.error_detail %} ({{ a.error_detail }}){% endif %}</li>
-    {% endfor %}
-  </ul>
-{% endif %}
+{% include "_review_body.html" %}
 {% endblock %}
