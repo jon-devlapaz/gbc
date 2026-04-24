@@ -47,7 +47,7 @@ class Verdict(BaseModel):
 class Action(BaseModel):
     id: int | None = None
     scan_id: int
-    entry_id: int | None
+    entry_id: int | None = None
     ts: datetime
     action: str  # archive | delete
     path: str
