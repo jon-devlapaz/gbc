@@ -584,7 +584,12 @@ button:focus-visible {
   align-items: baseline;
   gap: 10px;
   flex-wrap: wrap;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 80ms;
 }
+.tree-row:hover { background: var(--lcd-2); }
+.tree-row:active { background: var(--lcd-1); color: var(--lcd-3); }
 .tree-row strong,
 .tree-name { font-family: var(--font-pixel); font-size: 11px; letter-spacing: 1px; }
 .tree-name-link {

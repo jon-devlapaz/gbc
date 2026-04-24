@@ -200,6 +200,24 @@ document.addEventListener('click', async (ev) => {
   }
 });
 
+// Click-to-navigate on tree rows.
+//   * Click on .tree-row of a dir (avoiding nested buttons/links) → drill into /path
+//   * Click on .tree-row of a file (avoiding nested buttons/links) → trigger inline ▽ expand
+document.addEventListener('click', (ev) => {
+  if (ev.target.closest('button, a, input, label, textarea, select, .row-actions')) return;
+  const row = ev.target.closest('.tree-row');
+  if (!row) return;
+  const node = row.closest('.tree-node');
+  if (!node) return;
+  if (node.classList.contains('tree-dir')) {
+    const link = row.querySelector('.tree-name-link');
+    if (link) { ev.preventDefault(); window.location.href = link.href; }
+  } else if (node.classList.contains('tree-file')) {
+    const btn = node.querySelector(':scope > .tree-row .expand-btn');
+    if (btn) { ev.preventDefault(); btn.click(); }
+  }
+});
+
 // Tree filter — substring match against data-name on each .tree-node
 const filter = document.getElementById('tree-filter');
 if (filter) {

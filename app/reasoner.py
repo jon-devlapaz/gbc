@@ -4,7 +4,6 @@ from datetime import datetime
 from pathlib import Path
 from app.models import Entry
 
-MODEL = "claude-haiku-4-5"
 DEFAULT_CALL_CAP = 50
 
 
@@ -43,8 +42,22 @@ def build_prompt(entry: Entry) -> str:
 
 
 class Reasoner:
-    def __init__(self, client=None, call_cap: int = DEFAULT_CALL_CAP):
-        self.client = client
+    """Provider-agnostic reasoner. Pass a `call_fn(prompt) -> str` strategy.
+
+    Backwards-compatible: if a legacy `client` (Anthropic-shaped) is passed instead,
+    it will be wrapped automatically.
+    """
+    def __init__(self, call_fn=None, client=None, call_cap: int = DEFAULT_CALL_CAP):
+        if call_fn is None and client is not None:
+            def _legacy(prompt: str) -> str:
+                resp = client.messages.create(
+                    model="claude-haiku-4-5",
+                    max_tokens=120,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                return resp.content[0].text.strip()
+            call_fn = _legacy
+        self.call_fn = call_fn
         self.call_cap = call_cap
         self._calls = 0
         self._cache: dict[tuple[str, str], str] = {}
@@ -52,21 +65,17 @@ class Reasoner:
     def purpose(self, entry: Entry) -> str:
         if os.environ.get("CLAUDE_TOOL_DISABLE_REASONER") == "1":
             return "(reasoner disabled)"
+        if self.call_fn is None:
+            return "(reasoner disabled)"
 
         key = (entry.path, entry.mtime.isoformat(timespec="seconds"))
         if key in self._cache:
             return self._cache[key]
-
         if self._calls >= self.call_cap:
             return "(not reasoned)"
 
         try:
-            resp = self.client.messages.create(
-                model=MODEL,
-                max_tokens=120,
-                messages=[{"role": "user", "content": build_prompt(entry)}],
-            )
-            text = resp.content[0].text.strip()
+            text = self.call_fn(build_prompt(entry))
         except Exception:
             text = "(reasoner unavailable)"
 

@@ -17,6 +17,7 @@ from app.executor import Executor
 from app.files import FileSafetyError
 from app.formatting import format_age, format_size
 from app.inspector import inspect as inspect_dir
+from app.llm import select_provider
 from app.models import Status
 from app.reasoner import Reasoner
 from app.scanner import walk
@@ -26,18 +27,6 @@ from app.taxonomy import write_taxonomy
 def _env_path(key: str, default: Path) -> Path:
     v = os.environ.get(key)
     return Path(v) if v else default
-
-
-def _maybe_anthropic_client():
-    if os.environ.get("CLAUDE_TOOL_DISABLE_REASONER") == "1":
-        return None
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        return None
-    try:
-        from anthropic import Anthropic
-        return Anthropic()
-    except Exception:
-        return None
 
 
 def _is_htmx(request: Request) -> bool:
@@ -57,14 +46,16 @@ def create_app() -> FastAPI:
     templates.env.filters["age"] = format_age
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-    anthropic_client = _maybe_anthropic_client()
-    reasoner_enabled = anthropic_client is not None
+    selected = select_provider()
+    reasoner_call_fn = selected[1] if selected else None
+    reasoner_provider = selected[0] if selected else None
+    reasoner_enabled = reasoner_call_fn is not None
 
     def get_db() -> sqlite3.Connection:
         return db_mod.connect(db_path)
 
     def _base_ctx() -> dict:
-        return {"reasoner_enabled": reasoner_enabled}
+        return {"reasoner_enabled": reasoner_enabled, "reasoner_provider": reasoner_provider}
 
     @app.get("/", response_class=HTMLResponse)
     def home(request: Request):
@@ -81,7 +72,7 @@ def create_app() -> FastAPI:
         scan_id = cur.lastrowid
         conn.commit()
 
-        reasoner = Reasoner(client=anthropic_client) if anthropic_client else None
+        reasoner = Reasoner(call_fn=reasoner_call_fn) if reasoner_call_fn else None
 
         for entry in walk(claude_root):
             verdict = classify(entry)
@@ -255,8 +246,8 @@ def create_app() -> FastAPI:
         row = conn.execute("SELECT * FROM entries WHERE id=?", (entry_id,)).fetchone()
         if not row:
             return HTMLResponse("(not found)", status_code=404)
-        if anthropic_client is None:
-            return HTMLResponse("(reasoner disabled — set ANTHROPIC_API_KEY)")
+        if reasoner_call_fn is None:
+            return HTMLResponse("(reasoner disabled — set ANTHROPIC_API_KEY or GEMINI_API_KEY)")
         from app.models import Entry, EntryKind
         entry = Entry(
             path=row["path"], kind=EntryKind(row["kind"]), inode=row["inode"],
@@ -264,7 +255,7 @@ def create_app() -> FastAPI:
             file_count=row["file_count"] or 0,
             sample_files=json.loads(row["sample_files"] or "[]"),
         )
-        reasoner = Reasoner(client=anthropic_client)
+        reasoner = Reasoner(call_fn=reasoner_call_fn)
         purpose = reasoner.purpose(entry)
         conn.execute("UPDATE entries SET purpose=? WHERE id=?", (purpose, entry_id))
         conn.commit()
