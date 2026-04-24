@@ -35,24 +35,65 @@
 {% if tree and tree.children %}
 <section class="entry-detail">
   <h3>Contents — depth 2 ({{ tree.children|length }} immediate)</h3>
-  <ul class="tree">
+
+  <div class="tree-toolbar">
+    <input type="search" id="tree-filter" placeholder="filter (substring)…" autocomplete="off">
+    <button type="button" class="copy-btn" data-copy-text="{{ e.path }}">📋 dir path</button>
+    {% if e.kind == "dir" %}
+      <form hx-post="/duplicate" hx-target="#dup-result" hx-swap="innerHTML" style="display:inline">
+        <input type="hidden" name="path" value="{{ e.path }}">
+        <button type="submit" class="dup-btn"
+                onclick="return confirm('Duplicate {{ e.path }} → {{ e.path }}-vN?')">⎘ duplicate</button>
+      </form>
+    {% endif %}
+    <a class="vscode-link" href="vscode://file{{ e.path }}">▶ VS Code</a>
+  </div>
+  <div id="dup-result"></div>
+
+  <ul class="tree" id="tree-root">
     {% for c in tree.children %}
-      <li class="tree-node tree-{{ c.kind }}">
+      {% set cid = "n-" ~ loop.index %}
+      <li class="tree-node tree-{{ c.kind }}" data-name="{{ c.name|lower }}">
         <div class="tree-row">
           <strong>{{ c.name }}</strong>
+          {% if c.symlink_target %}<span class="symlink">→ {{ c.symlink_target }}</span>{% endif %}
           <span class="meta">{{ c.kind }}{% if c.kind == "file" %} · {{ c.size_bytes|size }}{% endif %} · {{ c.mtime_iso|age }}</span>
+          <span class="row-actions">
+            <button type="button" class="copy-btn" data-copy-text="{{ c.abs_path }}">📋 path</button>
+            {% if c.kind == "file" %}
+              <button type="button" class="copy-btn" data-copy-target="prev-{{ cid }}">📋 preview</button>
+              <button type="button" class="expand-btn"
+                      hx-get="/file?path={{ c.abs_path|urlencode }}"
+                      hx-target="next .file-slot" hx-swap="innerHTML">▽ open / edit</button>
+            {% endif %}
+            <a class="vscode-link" href="vscode://file{{ c.abs_path }}">VS Code</a>
+          </span>
         </div>
         {% if c.error %}<div class="tree-error">{{ c.error }}</div>{% endif %}
-        {% if c.preview %}<pre class="preview">{{ c.preview }}</pre>{% endif %}
+        {% if c.preview %}<pre id="prev-{{ cid }}" class="preview">{{ c.preview }}</pre>{% endif %}
+        <div class="file-slot"></div>
         {% if c.children %}
           <ul class="tree tree-nested">
             {% for g in c.children %}
-              <li class="tree-node tree-{{ g.kind }}">
+              {% set gid = cid ~ "-g-" ~ loop.index %}
+              <li class="tree-node tree-{{ g.kind }}" data-name="{{ g.name|lower }}">
                 <div class="tree-row">
                   <span>{{ g.name }}</span>
+                  {% if g.symlink_target %}<span class="symlink">→ {{ g.symlink_target }}</span>{% endif %}
                   <span class="meta">{{ g.kind }}{% if g.kind == "file" %} · {{ g.size_bytes|size }}{% endif %} · {{ g.mtime_iso|age }}</span>
+                  <span class="row-actions">
+                    <button type="button" class="copy-btn" data-copy-text="{{ g.abs_path }}">📋</button>
+                    {% if g.kind == "file" %}
+                      <button type="button" class="copy-btn" data-copy-target="prev-{{ gid }}">📋 preview</button>
+                      <button type="button" class="expand-btn"
+                              hx-get="/file?path={{ g.abs_path|urlencode }}"
+                              hx-target="next .file-slot" hx-swap="innerHTML">▽ open / edit</button>
+                    {% endif %}
+                    <a class="vscode-link" href="vscode://file{{ g.abs_path }}">VS Code</a>
+                  </span>
                 </div>
-                {% if g.preview %}<pre class="preview">{{ g.preview }}</pre>{% endif %}
+                {% if g.preview %}<pre id="prev-{{ gid }}" class="preview">{{ g.preview }}</pre>{% endif %}
+                <div class="file-slot"></div>
               </li>
             {% endfor %}
           </ul>
@@ -105,6 +146,47 @@ document.addEventListener('keydown', (ev) => {
     if (link) { ev.preventDefault(); window.location.href = link.href; }
   }
 });
+
+// Copy buttons (clipboard API). Two flavors:
+//   data-copy-text="LITERAL"           — copy the literal string
+//   data-copy-target="elementId"       — copy that element's textContent
+document.addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('.copy-btn');
+  if (!btn) return;
+  ev.preventDefault();
+  let text = btn.dataset.copyText;
+  if (!text && btn.dataset.copyTarget) {
+    const el = document.getElementById(btn.dataset.copyTarget);
+    text = el ? el.textContent : '';
+  }
+  try {
+    await navigator.clipboard.writeText(text || '');
+    const original = btn.textContent;
+    btn.textContent = '✓ copied';
+    setTimeout(() => { btn.textContent = original; }, 1200);
+  } catch (e) {
+    btn.textContent = '✗ failed';
+  }
+});
+
+// Tree filter — substring match against data-name on each .tree-node
+const filter = document.getElementById('tree-filter');
+if (filter) {
+  filter.addEventListener('input', () => {
+    const q = filter.value.trim().toLowerCase();
+    document.querySelectorAll('#tree-root > .tree-node').forEach(n => {
+      const name = n.dataset.name || '';
+      const childMatch = Array.from(n.querySelectorAll('.tree-nested .tree-node'))
+        .some(g => (g.dataset.name || '').includes(q));
+      n.style.display = (!q || name.includes(q) || childMatch) ? '' : 'none';
+      // hide non-matching grandchildren too
+      n.querySelectorAll('.tree-nested .tree-node').forEach(g => {
+        const gn = g.dataset.name || '';
+        g.style.display = (!q || gn.includes(q)) ? '' : 'none';
+      });
+    });
+  });
+}
 </script>
 
 {% endblock %}

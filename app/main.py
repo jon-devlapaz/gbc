@@ -11,8 +11,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app import db as db_mod
+from app import files as files_mod
 from app.classifier import classify
 from app.executor import Executor
+from app.files import FileSafetyError
 from app.formatting import format_age, format_size
 from app.inspector import inspect as inspect_dir
 from app.models import Status
@@ -128,13 +130,51 @@ def create_app() -> FastAPI:
         tree = None
         if row["kind"] == "dir":
             try:
-                tree = inspect_dir(Path(row["path"]))
-            except Exception as e:
+                tree = inspect_dir(Path(row["path"]), claude_root=claude_root)
+            except Exception:
                 tree = None
         return templates.TemplateResponse(
             request, "entry.html",
             {**_base_ctx(), "e": dict(row), "sample_files": sample_files,
-             "actions": [dict(a) for a in actions], "tree": tree},
+             "actions": [dict(a) for a in actions], "tree": tree,
+             "claude_root": str(claude_root)},
+        )
+
+    @app.get("/file", response_class=HTMLResponse)
+    def get_file(request: Request, path: str):
+        try:
+            content = files_mod.read(Path(path), claude_root)
+        except FileSafetyError as e:
+            return HTMLResponse(f"<pre class='preview error'>{e}</pre>", status_code=400)
+        # Always render as a fragment for HTMX swap.
+        return templates.TemplateResponse(
+            request, "_file_view.html",
+            {"path": path, "content": content},
+        )
+
+    @app.post("/file", response_class=HTMLResponse)
+    async def save_file(request: Request):
+        form = await request.form()
+        path = form.get("path", "")
+        content = form.get("content", "")
+        try:
+            real = files_mod.write(Path(path), str(content), claude_root)
+        except FileSafetyError as e:
+            return HTMLResponse(f"<div class='banner banner-warn'>SAVE FAILED — {e}</div>", status_code=400)
+        return HTMLResponse(
+            f"<div class='banner banner-success'><strong>SAVED</strong> {real}</div>"
+        )
+
+    @app.post("/duplicate", response_class=HTMLResponse)
+    async def duplicate(request: Request):
+        form = await request.form()
+        src = form.get("path", "")
+        try:
+            new_path = files_mod.duplicate_dir(Path(src), claude_root)
+        except FileSafetyError as e:
+            return HTMLResponse(f"<div class='banner banner-warn'>DUPLICATE FAILED — {e}</div>", status_code=400)
+        return HTMLResponse(
+            f"<div class='banner banner-success'><strong>DUPLICATED</strong> → <code>{new_path}</code></div>"
         )
 
     @app.post("/explain/{entry_id}", response_class=HTMLResponse)

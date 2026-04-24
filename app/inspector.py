@@ -32,6 +32,8 @@ class FileNode:
     kind: str            # "file" | "dir"
     size_bytes: int
     mtime_iso: str
+    abs_path: str = ""
+    symlink_target: str | None = None
     preview: str | None = None
     error: str | None = None
     children: list["FileNode"] = field(default_factory=list)
@@ -69,7 +71,7 @@ def _read_preview(path: Path) -> str | None:
         return f"(read failed: {e})"
 
 
-def _node(path: Path, rel_path: str) -> FileNode:
+def _node(path: Path, rel_path: str, claude_root: Path | None = None) -> FileNode:
     try:
         st = path.lstat()
     except OSError as e:
@@ -77,13 +79,30 @@ def _node(path: Path, rel_path: str) -> FileNode:
             name=path.name, rel_path=rel_path, kind="file",
             size_bytes=0, mtime_iso="", error=f"stat failed: {e}",
         )
-    is_dir = path.is_dir() and not path.is_symlink()
+
+    is_symlink = path.is_symlink()
+    symlink_target: str | None = None
+    is_dir = path.is_dir() and not is_symlink
+
+    # Follow symlinks whose target resolves inside claude_root.
+    if is_symlink and claude_root is not None:
+        try:
+            real = path.resolve()
+            real.relative_to(claude_root)
+            if real.is_dir():
+                is_dir = True
+            symlink_target = str(real)
+        except (OSError, ValueError):
+            pass
+
     return FileNode(
         name=path.name,
         rel_path=rel_path,
         kind="dir" if is_dir else "file",
         size_bytes=st.st_size if not is_dir else 0,
         mtime_iso=datetime.fromtimestamp(st.st_mtime).isoformat(timespec="seconds"),
+        abs_path=str(path),
+        symlink_target=symlink_target,
     )
 
 
@@ -107,23 +126,34 @@ def _list(path: Path, limit: int) -> list[Path]:
         return []
 
 
-def inspect(root: Path) -> FileNode:
-    """Walk `root` two levels deep and return a tree of FileNodes."""
+def inspect(root: Path, claude_root: Path | None = None) -> FileNode:
+    """Walk `root` two levels deep and return a tree of FileNodes.
+
+    Symlinks whose target resolves inside `claude_root` are followed.
+    """
     root = root.resolve()
-    top = _node(root, "")
+    if claude_root is None:
+        claude_root = root  # default: only follow symlinks staying within `root`
+    else:
+        claude_root = claude_root.resolve()
+
+    top = _node(root, "", claude_root)
     if top.kind != "dir" or _is_in_blocked_subtree(root.name):
         return top
 
     for child_path in _list(root, MAX_CHILDREN):
         rel = child_path.name
-        child = _node(child_path, rel)
-        _maybe_preview(child, child_path)
+        child = _node(child_path, rel, claude_root)
+        # If the child is a followed symlink, descend into its target.
+        descend_path = Path(child.symlink_target) if child.symlink_target and child.kind == "dir" else child_path
+        _maybe_preview(child, descend_path if child.kind == "file" else child_path)
 
         if child.kind == "dir" and not _is_in_blocked_subtree(rel):
-            for grand_path in _list(child_path, MAX_GRANDCHILDREN):
+            for grand_path in _list(descend_path, MAX_GRANDCHILDREN):
                 grand_rel = f"{rel}/{grand_path.name}"
-                grand = _node(grand_path, grand_rel)
-                _maybe_preview(grand, grand_path)
+                grand = _node(grand_path, grand_rel, claude_root)
+                grand_descend = Path(grand.symlink_target) if grand.symlink_target and grand.kind == "file" else grand_path
+                _maybe_preview(grand, grand_descend)
                 child.children.append(grand)
 
         top.children.append(child)

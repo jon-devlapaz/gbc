@@ -65,6 +65,50 @@ def test_entry_detail_not_found(client):
     assert r.status_code == 404
 
 
+def test_get_file_returns_content(client, tmp_path):
+    skill = tmp_path / ".claude" / "skills" / "demo"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text("hello world\n")
+    r = client.get("/file", params={"path": str(skill / "SKILL.md")})
+    assert r.status_code == 200
+    assert "hello world" in r.text
+
+
+def test_get_file_refuses_outside_claude(client, tmp_path):
+    outside = tmp_path / "outside.txt"
+    outside.write_text("x")
+    r = client.get("/file", params={"path": str(outside)})
+    assert r.status_code == 400
+
+
+def test_post_file_saves(client, tmp_path):
+    skill = tmp_path / ".claude" / "skills" / "demo"
+    skill.mkdir(parents=True)
+    target = skill / "SKILL.md"
+    target.write_text("old")
+    r = client.post("/file", data={"path": str(target), "content": "new content"})
+    assert r.status_code == 200
+    assert "SAVED" in r.text
+    assert target.read_text() == "new content"
+
+
+def test_post_file_refuses_non_editable(client, tmp_path):
+    target = tmp_path / ".claude" / "settings.json"
+    r = client.post("/file", data={"path": str(target), "content": "{}"})
+    assert r.status_code == 400
+    assert "FAILED" in r.text
+
+
+def test_duplicate_copies_skill_dir(client, tmp_path):
+    skill = tmp_path / ".claude" / "skills" / "demo"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text("original")
+    r = client.post("/duplicate", data={"path": str(skill)})
+    assert r.status_code == 200
+    assert "DUPLICATED" in r.text
+    assert (tmp_path / ".claude" / "skills" / "demo-v2" / "SKILL.md").read_text() == "original"
+
+
 def test_execute_armed_deletes(client, tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     client.post("/scan")
