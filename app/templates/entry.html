@@ -1,18 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
 
+{% set back_href = crumbs[-2].href if crumbs|length >= 2 else "/" %}
 <nav class="breadcrumb" aria-label="breadcrumb">
-  {% if parent_scan_id %}
-    <a href="/review/{{ parent_scan_id }}" id="back-link" class="crumb-back">◀ Scan #{{ parent_scan_id }}</a>
-  {% else %}
-    <a href="/" id="back-link" class="crumb-back">◀ Home</a>
-  {% endif %}
+  <a href="{{ back_href }}" id="back-link" class="crumb-back" data-tip="up one level">◀ back</a>
   <ol class="crumbs">
     {% for c in crumbs %}
       {% if loop.last %}
         <li class="crumb crumb-current" aria-current="page">{{ c.name }}</li>
       {% else %}
-        <li class="crumb"><a href="/path?path={{ c.path|urlencode }}">{{ c.name }}</a></li>
+        <li class="crumb"><a href="{{ c.href }}">{{ c.name }}</a></li>
       {% endif %}
     {% endfor %}
   </ol>

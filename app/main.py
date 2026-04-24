@@ -128,17 +128,19 @@ def create_app() -> FastAPI:
             except Exception:
                 tree = None
         is_editable_dir = files_mod.is_editable(Path(row["path"]), claude_root) if row["kind"] == "dir" else False
-        # Breadcrumb crumbs for the scan view too.
         real_path = Path(row["path"])
+        crumbs = [
+            {"name": f"Scan #{row['scan_id']}", "href": f"/review/{row['scan_id']}"},
+            {"name": "~/.claude", "href": f"/path?path={claude_root}"},
+        ]
         try:
             rel = real_path.relative_to(claude_root)
-            crumbs = [{"name": "~/.claude", "path": str(claude_root)}]
             cur = claude_root
             for part in rel.parts:
                 cur = cur / part
-                crumbs.append({"name": part, "path": str(cur)})
+                crumbs.append({"name": part, "href": f"/path?path={cur}"})
         except ValueError:
-            crumbs = [{"name": row["path"], "path": row["path"]}]
+            crumbs.append({"name": row["path"], "href": f"/entry/{row['id']}"})
         return templates.TemplateResponse(
             request, "entry.html",
             {**_base_ctx(), "e": dict(row), "sample_files": sample_files,
@@ -180,21 +182,23 @@ def create_app() -> FastAPI:
         tree = inspect_dir(real, claude_root=claude_root) if is_dir else None
         is_editable_dir = is_dir and files_mod.is_editable(real, claude_root)
 
-        # Build breadcrumb crumbs from root → real
+        # Most recent scan (for "Scan #N" crumb at the front)
+        conn = get_db()
+        scan_any = conn.execute(
+            "SELECT id FROM scans ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        parent_scan_id = scan_any["id"] if scan_any else None
+
+        # Crumb trail: [scan → ~/.claude → parts…]
         rel = real.relative_to(claude_root)
-        crumbs = [{"name": "~/.claude", "path": str(claude_root)}]
+        crumbs = []
+        if parent_scan_id:
+            crumbs.append({"name": f"Scan #{parent_scan_id}", "href": f"/review/{parent_scan_id}"})
+        crumbs.append({"name": "~/.claude", "href": f"/path?path={claude_root}"})
         cur = claude_root
         for part in rel.parts:
             cur = cur / part
-            crumbs.append({"name": part, "path": str(cur)})
-
-        # Most recent scan that includes this path (for "back to scan" link)
-        conn = get_db()
-        scan_row = conn.execute(
-            "SELECT scan_id FROM entries WHERE path=? ORDER BY scan_id DESC LIMIT 1",
-            (str(real),),
-        ).fetchone()
-        parent_scan_id = scan_row["scan_id"] if scan_row else None
+            crumbs.append({"name": part, "href": f"/path?path={cur}"})
 
         return templates.TemplateResponse(
             request, "entry.html",
