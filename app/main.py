@@ -70,9 +70,32 @@ def create_app() -> FastAPI:
     @app.get("/", response_class=HTMLResponse)
     def home(request: Request):
         conn = get_db()
-        row = conn.execute("SELECT id, started_at FROM scans ORDER BY id DESC LIMIT 1").fetchone()
+        try:
+            reindex(conn, claude_root)
+        except Exception:
+            pass
+        last_scan = conn.execute(
+            "SELECT id, started_at FROM scans ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        session_count = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+        recent_sessions = [dict(r) for r in conn.execute(
+            "SELECT session_id, family, started_at, first_prompt "
+            "FROM sessions ORDER BY started_at DESC LIMIT 5"
+        ).fetchall()]
+        top_families = [dict(r) for r in conn.execute(
+            "SELECT family, COUNT(*) AS n FROM sessions "
+            "WHERE family IS NOT NULL GROUP BY family ORDER BY n DESC LIMIT 5"
+        ).fetchall()]
+        last_index = conn.execute(
+            "SELECT * FROM index_runs ORDER BY id DESC LIMIT 1"
+        ).fetchone()
         return templates.TemplateResponse(
-            request, "home.html", {**_base_ctx(), "last_scan": row}
+            request, "home.html",
+            {**_base_ctx(), "last_scan": last_scan,
+             "session_count": session_count,
+             "recent_sessions": recent_sessions,
+             "top_families": top_families,
+             "last_index": dict(last_index) if last_index else None},
         )
 
     @app.post("/scan", response_class=HTMLResponse)

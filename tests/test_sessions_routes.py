@@ -55,3 +55,11 @@ def test_session_detail_renders(client):
 def test_reindex_post(client):
     r = client.post("/reindex")
     assert r.status_code == 200
+
+
+def test_home_shows_dashboard(client):
+    client.get("/sessions")  # trigger reindex first
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "Sessions" in r.text
+    assert "1" in r.text  # session count appears somewhere

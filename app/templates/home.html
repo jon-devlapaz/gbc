@@ -20,4 +20,40 @@
 {% if last_scan %}
 <p class="muted">Last scan: #{{ last_scan.id }} at {{ last_scan.started_at }} — <a href="/review/{{ last_scan.id }}">Review</a></p>
 {% endif %}
+
+<section class="entry-detail">
+  <h3>Sessions</h3>
+  <p class="muted">
+    {{ session_count }} total
+    {% if last_index %}
+      · last index {{ last_index.finished_at or "running…" }}
+      {% if last_index.error_count %} · <span class="status-kill_candidate">{{ last_index.error_count }} errors</span>{% endif %}
+    {% endif %}
+    · <a href="/sessions">browse all →</a>
+  </p>
+
+  <h4>Recent</h4>
+  <ul class="entry-list">
+    {% for s in recent_sessions %}
+      <li class="entry">
+        <a class="tree-name tree-name-link" href="/sessions/{{ s.session_id }}">
+          <strong>{{ s.first_prompt or s.session_id }}</strong>
+        </a>
+        <span class="meta">{{ s.family }} · {{ s.started_at }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <h4>Top families</h4>
+  <ul class="entry-list">
+    {% for f in top_families %}
+      <li class="entry">
+        <a class="tree-name tree-name-link" href="/sessions?family={{ f.family }}">
+          <strong>{{ f.family }}</strong>
+        </a>
+        <span class="meta">{{ f.n }} sessions</span>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
 {% endblock %}
