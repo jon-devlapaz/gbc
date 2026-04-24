@@ -52,8 +52,11 @@
                 <span class="purpose">{{ e.purpose or "—" }}</span>
               </label>
               <a class="detail-link" href="/entry/{{ e.id }}">▼ inspect</a>
-              <button type="button" class="explain-btn"
-                      hx-post="/explain/{{ e.id }}" hx-target="closest .entry .purpose" hx-swap="innerHTML">?</button>
+              {% if reasoner_enabled %}
+                <button type="button" class="explain-btn"
+                        hx-post="/explain/{{ e.id }}" hx-target="closest .entry .purpose" hx-swap="innerHTML"
+                        data-tip="ask {{ reasoner_provider }} for purpose">?</button>
+              {% endif %}
             </li>
           {% endfor %}
         </ul>
@@ -74,6 +77,11 @@
             <strong>{{ e.path.split('/')[-1] }}</strong>
             <span class="meta">{{ e.kind }} · {{ e.size_bytes|size }} · {{ e.mtime|age }}</span>
             <span class="purpose">{{ e.purpose or e.reason }}</span>
+            {% if reasoner_enabled %}
+              <button type="button" class="explain-btn"
+                      hx-post="/explain/{{ e.id }}" hx-target="closest .entry .purpose" hx-swap="innerHTML"
+                      data-tip="ask {{ reasoner_provider }} for purpose">?</button>
+            {% endif %}
             <a class="detail-link" href="/entry/{{ e.id }}">▼ inspect</a>
           </li>
         {% endfor %}

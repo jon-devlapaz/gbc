@@ -67,23 +67,26 @@ def create_app() -> FastAPI:
 
     @app.post("/scan", response_class=HTMLResponse)
     def scan(request: Request):
+        """Fast scan: walk + classify only. Purposes stay NULL.
+
+        Reasoner runs lazily per entry via POST /explain/{id} (the `?` button
+        in the review UI). Avoids holding sqlite write lock during slow LLM calls.
+        """
         conn = get_db()
         cur = conn.execute("INSERT INTO scans(started_at) VALUES (?)", (datetime.now().isoformat(),))
         scan_id = cur.lastrowid
         conn.commit()
 
-        reasoner = Reasoner(call_fn=reasoner_call_fn) if reasoner_call_fn else None
-
         for entry in walk(claude_root):
             verdict = classify(entry)
-            purpose = reasoner.purpose(entry) if reasoner else None
             conn.execute(
                 "INSERT INTO entries(scan_id,path,kind,inode,size_bytes,mtime,file_count,sample_files,status,reason,purpose) "
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (scan_id, entry.path, entry.kind.value, entry.inode, entry.size_bytes,
                  entry.mtime.isoformat(), entry.file_count, json.dumps(entry.sample_files),
-                 verdict.status.value, verdict.reason, purpose),
+                 verdict.status.value, verdict.reason, None),
             )
+            conn.commit()  # release lock per row so other reads can interleave
         conn.execute("UPDATE scans SET finished_at=? WHERE id=?", (datetime.now().isoformat(), scan_id))
         conn.commit()
         return _render_review(request, templates, conn, scan_id, result=None, ctx=_base_ctx())
