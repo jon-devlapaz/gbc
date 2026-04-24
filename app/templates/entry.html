@@ -1,34 +1,55 @@
 {% extends "base.html" %}
 {% block content %}
 
-<p class="breadcrumb">
-  <a href="/review/{{ e.scan_id }}" id="back-link">◀ Scan #{{ e.scan_id }}</a>
+<nav class="breadcrumb" aria-label="breadcrumb">
+  {% if parent_scan_id %}
+    <a href="/review/{{ parent_scan_id }}" id="back-link" class="crumb-back">◀ Scan #{{ parent_scan_id }}</a>
+  {% else %}
+    <a href="/" id="back-link" class="crumb-back">◀ Home</a>
+  {% endif %}
+  <ol class="crumbs">
+    {% for c in crumbs %}
+      {% if loop.last %}
+        <li class="crumb crumb-current" aria-current="page">{{ c.name }}</li>
+      {% else %}
+        <li class="crumb"><a href="/path?path={{ c.path|urlencode }}">{{ c.name }}</a></li>
+      {% endif %}
+    {% endfor %}
+  </ol>
   <span class="keyhint">B / ESC · back</span>
-</p>
+</nav>
 
-<h2>{{ e.path.split('/')[-1] }}</h2>
+<h2>{{ e.path.split('/')[-1] }}
+  {% if is_adhoc %}<span class="adhoc-tag">live · not in scan</span>{% endif %}
+</h2>
 
 <section class="entry-detail">
   <h3>Metadata</h3>
   <dl class="metadata-grid">
     <dt>Path</dt>           <dd><code>{{ e.path }}</code></dd>
     <dt>Kind</dt>           <dd>{{ e.kind }}</dd>
-    <dt>Status</dt>         <dd class="status-{{ e.status }}">{{ e.status }}</dd>
-    <dt>Classifier rule</dt><dd>{{ e.reason }}</dd>
-    <dt>Purpose (LLM)</dt>
-    <dd>
-      <span id="purpose-text">{{ e.purpose or "—" }}</span>
-      {% if reasoner_enabled %}
-        <button type="button" class="explain-btn"
-                hx-post="/explain/{{ e.id }}" hx-target="#purpose-text" hx-swap="innerHTML">re-ask</button>
-      {% endif %}
-    </dd>
+    {% if not is_adhoc %}
+      <dt>Status</dt>         <dd class="status-{{ e.status }}">{{ e.status }}</dd>
+      <dt>Classifier rule</dt><dd>{{ e.reason }}</dd>
+      <dt>Purpose (LLM)</dt>
+      <dd>
+        <span id="purpose-text">{{ e.purpose or "—" }}</span>
+        {% if reasoner_enabled and e.id %}
+          <button type="button" class="explain-btn"
+                  hx-post="/explain/{{ e.id }}" hx-target="#purpose-text" hx-swap="innerHTML">re-ask</button>
+        {% endif %}
+      </dd>
+    {% endif %}
     <dt>Size</dt>           <dd>{{ e.size_bytes|size }} ({{ e.size_bytes }} bytes)</dd>
-    <dt>File count</dt>     <dd>{{ e.file_count }}</dd>
+    {% if e.file_count is not none %}
+      <dt>File count</dt>   <dd>{{ e.file_count }}</dd>
+    {% endif %}
     <dt>Last mtime</dt>     <dd>{{ e.mtime }} ({{ e.mtime|age }})</dd>
     <dt>Inode</dt>          <dd>{{ e.inode }}</dd>
-    <dt>Scan</dt>           <dd>#{{ e.scan_id }}</dd>
-    <dt>User decision</dt>  <dd>{{ e.user_decision or "—" }}</dd>
+    {% if not is_adhoc %}
+      <dt>Scan</dt>         <dd>#{{ e.scan_id }}</dd>
+      <dt>User decision</dt><dd>{{ e.user_decision or "—" }}</dd>
+    {% endif %}
   </dl>
 </section>
 
@@ -55,7 +76,11 @@
       {% set cid = "n-" ~ loop.index %}
       <li class="tree-node tree-{{ c.kind }}" data-name="{{ c.name|lower }}">
         <div class="tree-row">
-          <strong>{{ c.name }}</strong>
+          {% if c.kind == "dir" %}
+            <a class="tree-name tree-name-link" href="/path?path={{ c.abs_path|urlencode }}"><strong>{{ c.name }}</strong></a>
+          {% else %}
+            <strong class="tree-name">{{ c.name }}</strong>
+          {% endif %}
           {% if c.symlink_target %}<span class="symlink">→ {{ c.symlink_target }}</span>{% endif %}
           <span class="meta">{{ c.kind }}{% if c.kind == "file" %} · {{ c.size_bytes|size }}{% endif %} · {{ c.mtime_iso|age }}</span>
           <span class="row-actions">
@@ -79,7 +104,11 @@
               {% set gid = cid ~ "-g-" ~ loop.index %}
               <li class="tree-node tree-{{ g.kind }}" data-name="{{ g.name|lower }}">
                 <div class="tree-row">
-                  <span>{{ g.name }}</span>
+                  {% if g.kind == "dir" %}
+                    <a class="tree-name tree-name-link" href="/path?path={{ g.abs_path|urlencode }}">{{ g.name }}</a>
+                  {% else %}
+                    <span class="tree-name">{{ g.name }}</span>
+                  {% endif %}
                   {% if g.symlink_target %}<span class="symlink">→ {{ g.symlink_target }}</span>{% endif %}
                   <span class="meta">{{ g.kind }}{% if g.kind == "file" %} · {{ g.size_bytes|size }}{% endif %} · {{ g.mtime_iso|age }}</span>
                   <span class="row-actions">

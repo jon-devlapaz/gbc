@@ -65,6 +65,29 @@ def test_entry_detail_not_found(client):
     assert r.status_code == 404
 
 
+def test_path_detail_renders_subdir(client, tmp_path):
+    skill = tmp_path / ".claude" / "skills" / "demo"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text("# demo\n")
+    r = client.get("/path", params={"path": str(skill)})
+    assert r.status_code == 200
+    assert "demo" in r.text
+    assert "SKILL.md" in r.text
+    assert "live · not in scan" in r.text
+
+
+def test_path_detail_refuses_outside_claude(client, tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    r = client.get("/path", params={"path": str(outside)})
+    assert r.status_code == 400
+
+
+def test_path_detail_404_on_missing(client, tmp_path):
+    r = client.get("/path", params={"path": str(tmp_path / ".claude" / "ghost")})
+    assert r.status_code == 404
+
+
 def test_get_file_returns_content(client, tmp_path):
     skill = tmp_path / ".claude" / "skills" / "demo"
     skill.mkdir(parents=True)

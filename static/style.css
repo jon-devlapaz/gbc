@@ -461,10 +461,11 @@ button:focus-visible {
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  flex-wrap: wrap;
   margin-bottom: 14px;
 }
-.breadcrumb a {
+.crumb-back {
   font-family: var(--font-pixel);
   font-size: 10px;
   color: var(--lcd-0);
@@ -474,7 +475,55 @@ button:focus-visible {
   text-decoration: none;
   box-shadow: 2px 2px 0 var(--lcd-0);
 }
-.breadcrumb a:hover { background: var(--lcd-0); color: var(--lcd-3); }
+.crumb-back:hover { background: var(--lcd-0); color: var(--lcd-3); }
+
+.crumbs {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-lcd);
+  font-size: 15px;
+}
+.crumb { display: inline-flex; align-items: center; }
+.crumb::after {
+  content: "/";
+  margin: 0 4px;
+  color: var(--lcd-1);
+}
+.crumb:last-child::after { content: ""; }
+.crumb a {
+  color: var(--lcd-0);
+  text-decoration: none;
+  padding: 2px 6px;
+  border-bottom: 1px dashed transparent;
+}
+.crumb a:hover {
+  background: var(--lcd-0);
+  color: var(--lcd-3);
+}
+.crumb-current {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--lcd-0);
+  background: var(--lcd-2);
+  padding: 2px 6px;
+  border: 1px solid var(--lcd-0);
+}
+
+.adhoc-tag {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: var(--lcd-3);
+  background: var(--lcd-1);
+  padding: 3px 6px;
+  margin-left: 10px;
+  letter-spacing: 1px;
+  vertical-align: middle;
+}
 
 .entry-detail {
   border: 2px solid var(--lcd-0);
@@ -536,7 +585,19 @@ button:focus-visible {
   gap: 10px;
   flex-wrap: wrap;
 }
-.tree-row strong { font-family: var(--font-pixel); font-size: 11px; letter-spacing: 1px; }
+.tree-row strong,
+.tree-name { font-family: var(--font-pixel); font-size: 11px; letter-spacing: 1px; }
+.tree-name-link {
+  color: var(--lcd-0);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding: 2px 2px;
+}
+.tree-name-link:hover {
+  background: var(--lcd-0);
+  color: var(--lcd-3);
+}
+.tree-name-link::after { content: " ▸"; color: var(--lcd-1); font-size: 8px; }
 
 .tree-error {
   color: var(--led-red);

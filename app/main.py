@@ -134,12 +134,82 @@ def create_app() -> FastAPI:
             except Exception:
                 tree = None
         is_editable_dir = files_mod.is_editable(Path(row["path"]), claude_root) if row["kind"] == "dir" else False
+        # Breadcrumb crumbs for the scan view too.
+        real_path = Path(row["path"])
+        try:
+            rel = real_path.relative_to(claude_root)
+            crumbs = [{"name": "~/.claude", "path": str(claude_root)}]
+            cur = claude_root
+            for part in rel.parts:
+                cur = cur / part
+                crumbs.append({"name": part, "path": str(cur)})
+        except ValueError:
+            crumbs = [{"name": row["path"], "path": row["path"]}]
         return templates.TemplateResponse(
             request, "entry.html",
             {**_base_ctx(), "e": dict(row), "sample_files": sample_files,
              "actions": [dict(a) for a in actions], "tree": tree,
              "claude_root": str(claude_root),
-             "is_editable_dir": is_editable_dir},
+             "is_editable_dir": is_editable_dir,
+             "crumbs": crumbs, "is_adhoc": False,
+             "parent_scan_id": row["scan_id"]},
+        )
+
+    @app.get("/path", response_class=HTMLResponse)
+    def path_detail(request: Request, path: str):
+        """Ad-hoc inspection of any path under ~/.claude/, including sub-dirs not in the scan."""
+        try:
+            real = Path(os.path.realpath(path))
+            real.relative_to(claude_root)
+        except (OSError, ValueError) as e:
+            return HTMLResponse(f"(refused: {e})", status_code=400)
+        if not real.exists():
+            return HTMLResponse("(path does not exist)", status_code=404)
+
+        st = real.stat()
+        is_dir = real.is_dir()
+        synthetic = {
+            "id": None,
+            "scan_id": None,
+            "path": str(real),
+            "kind": "dir" if is_dir else "file",
+            "inode": st.st_ino,
+            "size_bytes": st.st_size if not is_dir else 0,
+            "mtime": datetime.fromtimestamp(st.st_mtime).isoformat(timespec="seconds"),
+            "file_count": None,
+            "sample_files": "[]",
+            "status": None,
+            "reason": None,
+            "purpose": None,
+            "user_decision": None,
+        }
+        tree = inspect_dir(real, claude_root=claude_root) if is_dir else None
+        is_editable_dir = is_dir and files_mod.is_editable(real, claude_root)
+
+        # Build breadcrumb crumbs from root → real
+        rel = real.relative_to(claude_root)
+        crumbs = [{"name": "~/.claude", "path": str(claude_root)}]
+        cur = claude_root
+        for part in rel.parts:
+            cur = cur / part
+            crumbs.append({"name": part, "path": str(cur)})
+
+        # Most recent scan that includes this path (for "back to scan" link)
+        conn = get_db()
+        scan_row = conn.execute(
+            "SELECT scan_id FROM entries WHERE path=? ORDER BY scan_id DESC LIMIT 1",
+            (str(real),),
+        ).fetchone()
+        parent_scan_id = scan_row["scan_id"] if scan_row else None
+
+        return templates.TemplateResponse(
+            request, "entry.html",
+            {**_base_ctx(),
+             "e": synthetic, "sample_files": [], "actions": [],
+             "tree": tree, "claude_root": str(claude_root),
+             "is_editable_dir": is_editable_dir,
+             "crumbs": crumbs, "is_adhoc": True,
+             "parent_scan_id": parent_scan_id},
         )
 
     @app.get("/file", response_class=HTMLResponse)
