@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Families</h2>
+
+<section class="entry-detail">
+  <h3>Overrides</h3>
+  {% if families %}
+  <ul class="entry-list">
+    {% for f in families %}
+      <li class="entry">
+        <strong>{{ f.name }}</strong>
+        <span class="meta">{{ f.path_prefix }} · {{ counts.get(f.name, 0) }} sessions</span>
+      </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No overrides yet. Auto-detection handles most cases.</p>
+  {% endif %}
+
+  <h3>Add override</h3>
+  <form method="post" action="/families" class="session-search">
+    <label>name: <input type="text" name="name" required></label>
+    <label>path prefix: <input type="text" name="path_prefix" required size="50"></label>
+    <button type="submit">save</button>
+  </form>
+</section>
+
+<section class="entry-detail">
+  <h3>Redact prompts (privacy)</h3>
+  <p class="muted">SQL LIKE pattern. Use % as wildcard. Permanently deletes matching FTS rows.</p>
+  <form method="post" action="/sessions/redact" class="session-search">
+    <input type="text" name="pattern" placeholder="%sk_live_%" size="40">
+    <button type="submit" class="danger-btn"
+            onclick="return confirm('Delete all prompts containing this pattern?')">redact</button>
+  </form>
+</section>
+{% endblock %}

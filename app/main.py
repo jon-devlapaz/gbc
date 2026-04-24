@@ -359,6 +359,46 @@ def create_app() -> FastAPI:
         reindex(conn, claude_root, force_rebuild=wipe)
         return HTMLResponse("<div class='banner banner-success'><strong>REINDEXED</strong></div>")
 
+    @app.get("/families", response_class=HTMLResponse)
+    def families_page(request: Request):
+        conn = get_db()
+        rows = [dict(r) for r in conn.execute(
+            "SELECT name, path_prefix, is_override FROM families ORDER BY path_prefix DESC"
+        ).fetchall()]
+        counts = {r["family"]: r["n"] for r in conn.execute(
+            "SELECT family, COUNT(*) AS n FROM sessions GROUP BY family"
+        ).fetchall()}
+        return templates.TemplateResponse(
+            request, "families.html",
+            {**_base_ctx(), "families": rows, "counts": counts},
+        )
+
+    @app.post("/families", response_class=HTMLResponse)
+    async def families_upsert(request: Request):
+        form = await request.form()
+        name = (form.get("name") or "").strip()
+        prefix = (form.get("path_prefix") or "").strip()
+        if not name or not prefix:
+            return HTMLResponse("<div class='banner banner-warn'>name + path_prefix required</div>", status_code=400)
+        conn = get_db()
+        conn.execute(
+            "INSERT OR REPLACE INTO families(name, path_prefix, is_override) VALUES (?,?,1)",
+            (name, prefix),
+        )
+        conn.commit()
+        return HTMLResponse(f"<div class='banner banner-success'><strong>SAVED</strong> {name} → {prefix}</div>")
+
+    @app.post("/sessions/redact", response_class=HTMLResponse)
+    async def sessions_redact(request: Request):
+        form = await request.form()
+        pattern = (form.get("pattern") or "").strip()
+        if not pattern:
+            return HTMLResponse("<div class='banner banner-warn'>pattern required</div>", status_code=400)
+        conn = get_db()
+        cur = conn.execute("DELETE FROM prompts_fts WHERE content LIKE ?", (pattern,))
+        conn.commit()
+        return HTMLResponse(f"<div class='banner banner-success'><strong>REDACTED</strong> {cur.rowcount} rows</div>")
+
     return app
 
 
