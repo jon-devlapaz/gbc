@@ -32,9 +32,10 @@ def test_walk_samples_filenames(fake_claude: Path):
 
 
 def test_walk_survives_permission_denied(fake_claude: Path):
-    entries = walk(fake_claude)
-    names = {Path(e.path).name for e in entries}
-    assert "locked" in names
+    entries = {Path(e.path).name: e for e in walk(fake_claude)}
+    assert "locked" in entries
+    assert entries["locked"].file_count == 0
+    assert entries["locked"].size_bytes == 0
 
 
 def test_walk_does_not_follow_outbound_symlinks(fake_claude: Path, tmp_path: Path):
