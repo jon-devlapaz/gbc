@@ -57,6 +57,13 @@ def create_app() -> FastAPI:
     def _base_ctx() -> dict:
         return {"reasoner_enabled": reasoner_enabled, "reasoner_provider": reasoner_provider}
 
+    @app.get("/health")
+    def health():
+        return {
+            "reasoner": reasoner_enabled,
+            "provider": reasoner_provider,
+        }
+
     @app.get("/", response_class=HTMLResponse)
     def home(request: Request):
         conn = get_db()

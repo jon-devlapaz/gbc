@@ -22,6 +22,13 @@ def client(tmp_path: Path, monkeypatch):
     return TestClient(app)
 
 
+def test_health_endpoint(client):
+    r = client.get("/health")
+    assert r.status_code == 200
+    body = r.json()
+    assert "reasoner" in body and "provider" in body
+
+
 def test_home_renders(client):
     r = client.get("/")
     assert r.status_code == 200

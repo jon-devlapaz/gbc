@@ -57,11 +57,37 @@ header {
   gap: 14px;
 }
 
-header::before {
-  content: "●";
-  color: var(--led-red);
-  text-shadow: 0 0 6px var(--led-red);
-  font-size: 14px;
+/* LED replaces old ::before decoration */
+.led {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--shell-shadow);
+  box-shadow: inset -1px -1px 2px rgba(0,0,0,0.3);
+  transition: background 150ms, box-shadow 150ms;
+}
+.led-ok      { background: #21c55d; box-shadow: 0 0 8px #21c55d, inset -1px -1px 2px rgba(0,0,0,0.3); }
+.led-warn    { background: #f0c040; box-shadow: 0 0 6px #f0c040, inset -1px -1px 2px rgba(0,0,0,0.3); }
+.led-bad     { background: var(--led-red); box-shadow: 0 0 8px var(--led-red), inset -1px -1px 2px rgba(0,0,0,0.3); animation: led-alert 0.6s steps(2) infinite; }
+.led-busy    { background: #40a0ff; box-shadow: 0 0 8px #40a0ff; animation: led-pulse 0.7s ease-in-out infinite alternate; }
+.led-unknown { background: var(--shell-shadow); }
+
+@keyframes led-pulse {
+  from { opacity: 0.5; transform: scale(0.85); }
+  to   { opacity: 1;   transform: scale(1.1); }
+}
+@keyframes led-alert {
+  50% { opacity: 0.35; }
+}
+
+.status-label {
+  margin-left: auto;
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--shell-shadow);
+  text-transform: uppercase;
 }
 
 header h1 {
@@ -71,14 +97,7 @@ header h1 {
   color: var(--bezel);
 }
 
-header::after {
-  content: "DOT MATRIX WITH STEREO SOUND";
-  margin-left: auto;
-  font-family: var(--font-pixel);
-  font-size: 8px;
-  letter-spacing: 1px;
-  color: var(--shell-shadow);
-}
+/* header::after removed — replaced by JS-driven .status-label */
 
 /* ============ Main = LCD screen ============ */
 
@@ -393,6 +412,37 @@ button:focus-visible {
 }
 .htmx-request .htmx-indicator { opacity: 1; }
 .htmx-request.htmx-indicator  { opacity: 1; }
+
+/* Button pulse during in-flight HTMX request */
+.htmx-request.explain-btn,
+.explain-btn.htmx-request {
+  animation: btn-thinking 0.6s ease-in-out infinite alternate;
+  background: var(--lcd-1);
+  color: var(--lcd-3);
+}
+@keyframes btn-thinking {
+  from { opacity: 0.55; }
+  to   { opacity: 1; }
+}
+
+/* Target cell during in-flight — shows thinking dots */
+.purpose.htmx-request,
+.purpose.htmx-swapping { position: relative; }
+.purpose.htmx-request::after {
+  content: "thinking";
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: var(--lcd-1);
+  margin-left: 6px;
+  animation: dots 1.2s steps(4, end) infinite;
+}
+@keyframes dots {
+  0%   { content: "thinking"; }
+  25%  { content: "thinking ."; }
+  50%  { content: "thinking .."; }
+  75%  { content: "thinking ..."; }
+  100% { content: "thinking"; }
+}
 
 /* ============ Misc ============ */
 

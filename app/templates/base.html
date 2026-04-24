@@ -10,7 +10,42 @@
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </head>
 <body>
-  <header><h1>claude-workspace-tool</h1></header>
+  <header>
+    <span id="status-led" class="led led-unknown" data-tip="reasoner status"></span>
+    <h1>claude-workspace-tool</h1>
+    <span id="status-label" class="status-label">—</span>
+  </header>
   <main>{% block content %}{% endblock %}</main>
+
+  <script>
+    // Status LED: polls /health on load; flashes during HTMX requests.
+    const led = document.getElementById('status-led');
+    const label = document.getElementById('status-label');
+    function setLed(state, text) {
+      if (!led) return;
+      led.className = 'led led-' + state;
+      if (label && text !== undefined) label.textContent = text;
+    }
+    async function refreshHealth() {
+      try {
+        const r = await fetch('/health');
+        if (!r.ok) { setLed('bad', 'reasoner: error'); return; }
+        const j = await r.json();
+        if (j.reasoner) setLed('ok', 'reasoner · ' + j.provider);
+        else setLed('warn', 'reasoner off');
+      } catch (e) { setLed('bad', 'connect fail'); }
+    }
+    refreshHealth();
+    setInterval(refreshHealth, 30000);
+
+    // Pulse LED during active HTMX work
+    document.body.addEventListener('htmx:beforeRequest', () => setLed('busy', 'thinking…'));
+    document.body.addEventListener('htmx:afterOnLoad', (ev) => {
+      if (ev.detail.xhr.status < 400) refreshHealth();
+      else setLed('bad', 'http ' + ev.detail.xhr.status);
+    });
+    document.body.addEventListener('htmx:responseError', (ev) => setLed('bad', 'http ' + ev.detail.xhr.status));
+    document.body.addEventListener('htmx:sendError', () => setLed('bad', 'network err'));
+  </script>
 </body>
 </html>
