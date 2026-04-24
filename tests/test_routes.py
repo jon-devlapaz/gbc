@@ -40,7 +40,10 @@ def test_execute_dry_run_does_not_delete(client, tmp_path):
     assert scan.status_code == 200
     scan_id = _latest_scan_id(tmp_path)
     entry_ids = _kill_candidate_ids(tmp_path, scan_id)
-    r = client.post(f"/execute/{scan_id}", data=[("entry_id", str(eid)) for eid in entry_ids] + [("armed", "false")])
+    r = client.post(
+        f"/execute/{scan_id}",
+        data={"entry_id": [str(eid) for eid in entry_ids], "armed": "false"},
+    )
     assert r.status_code == 200
     assert (tmp_path / ".claude" / "paste-cache").exists()
 
@@ -50,7 +53,10 @@ def test_execute_armed_deletes(client, tmp_path, monkeypatch):
     client.post("/scan")
     scan_id = _latest_scan_id(tmp_path)
     entry_ids = _kill_candidate_ids(tmp_path, scan_id)
-    r = client.post(f"/execute/{scan_id}", data=[("entry_id", str(eid)) for eid in entry_ids] + [("armed", "true")])
+    r = client.post(
+        f"/execute/{scan_id}",
+        data={"entry_id": [str(eid) for eid in entry_ids], "armed": "true"},
+    )
     assert r.status_code == 200
     assert not (tmp_path / ".claude" / "paste-cache").exists()
 
