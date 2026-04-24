@@ -49,12 +49,12 @@
                 <input type="checkbox" name="entry_id" value="{{ e.id }}">
                 <strong>{{ e.path.split('/')[-1] }}</strong>
                 <span class="meta">{{ e.kind }} · {{ e.size_bytes|size }} · {{ e.mtime|age }}</span>
-                <span class="purpose">{{ e.purpose or "—" }}</span>
+                <span class="purpose" id="purpose-{{ e.id }}">{{ e.purpose or "—" }}</span>
               </label>
               <a class="detail-link" href="/entry/{{ e.id }}">▼ inspect</a>
               {% if reasoner_enabled %}
                 <button type="button" class="explain-btn"
-                        hx-post="/explain/{{ e.id }}" hx-target="closest .entry .purpose" hx-swap="innerHTML"
+                        hx-post="/explain/{{ e.id }}" hx-target="#purpose-{{ e.id }}" hx-swap="innerHTML"
                         data-tip="ask {{ reasoner_provider }} for purpose">?</button>
               {% endif %}
             </li>
@@ -76,10 +76,10 @@
           <li class="entry" data-entry-id="{{ e.id }}" tabindex="0">
             <strong>{{ e.path.split('/')[-1] }}</strong>
             <span class="meta">{{ e.kind }} · {{ e.size_bytes|size }} · {{ e.mtime|age }}</span>
-            <span class="purpose">{{ e.purpose or e.reason }}</span>
+            <span class="purpose" id="purpose-{{ e.id }}">{{ e.purpose or e.reason }}</span>
             {% if reasoner_enabled %}
               <button type="button" class="explain-btn"
-                      hx-post="/explain/{{ e.id }}" hx-target="closest .entry .purpose" hx-swap="innerHTML"
+                      hx-post="/explain/{{ e.id }}" hx-target="#purpose-{{ e.id }}" hx-swap="innerHTML"
                       data-tip="ask {{ reasoner_provider }} for purpose">?</button>
             {% endif %}
             <a class="detail-link" href="/entry/{{ e.id }}">▼ inspect</a>
