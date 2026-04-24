@@ -14,6 +14,7 @@ from app import db as db_mod
 from app.classifier import classify
 from app.executor import Executor
 from app.formatting import format_age, format_size
+from app.inspector import inspect as inspect_dir
 from app.models import Status
 from app.reasoner import Reasoner
 from app.scanner import walk
@@ -124,10 +125,16 @@ def create_app() -> FastAPI:
             "SELECT * FROM actions WHERE entry_id=? ORDER BY ts DESC", (entry_id,)
         ).fetchall()
         sample_files = json.loads(row["sample_files"] or "[]")
+        tree = None
+        if row["kind"] == "dir":
+            try:
+                tree = inspect_dir(Path(row["path"]))
+            except Exception as e:
+                tree = None
         return templates.TemplateResponse(
             request, "entry.html",
             {**_base_ctx(), "e": dict(row), "sample_files": sample_files,
-             "actions": [dict(a) for a in actions]},
+             "actions": [dict(a) for a in actions], "tree": tree},
         )
 
     @app.post("/explain/{entry_id}", response_class=HTMLResponse)
