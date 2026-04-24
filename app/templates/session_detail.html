@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<nav class="breadcrumb">
+  <a href="/sessions" class="crumb-back">◀ Sessions</a>
+</nav>
+
+<h2>Session {{ session.session_id }}</h2>
+<section class="entry-detail">
+  <h3>Metadata</h3>
+  <dl class="metadata-grid">
+    <dt>Family</dt>       <dd>{{ session.family }}</dd>
+    <dt>Cwd</dt>          <dd><code>{{ session.cwd or "—" }}</code></dd>
+    <dt>Started</dt>      <dd>{{ session.started_at or "—" }}</dd>
+    <dt>Ended</dt>        <dd>{{ session.ended_at or "—" }}</dd>
+    <dt>Messages</dt>     <dd>{{ session.message_count }}</dd>
+    <dt>Prompts</dt>      <dd>{{ session.prompt_count }}</dd>
+    <dt>Jsonl path</dt>   <dd><code>{{ session.jsonl_path }}</code></dd>
+  </dl>
+</section>
+
+<section class="entry-detail">
+  <h3>Transcript ({{ offset }} – {{ offset + events|length }} of {{ session.message_count }})</h3>
+  <ul class="transcript">
+    {% for e in events %}
+      <li class="evt evt-{{ e.kind }}">
+        <span class="evt-kind">{{ e.kind }}</span>
+        <span class="evt-ts">{{ e.timestamp }}</span>
+        <pre class="preview">{{ e.body_preview }}</pre>
+      </li>
+    {% endfor %}
+  </ul>
+  {% if offset + events|length < session.message_count %}
+    <a class="crumb-back" href="/sessions/{{ session.session_id }}?offset={{ offset + limit }}&limit={{ limit }}">next {{ limit }} ▶</a>
+  {% endif %}
+</section>
+{% endblock %}

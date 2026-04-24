@@ -19,8 +19,11 @@ from app.formatting import format_age, format_size
 from app.inspector import inspect as inspect_dir
 from app.llm import select_provider
 from app.models import Status
+from app.fts import search as fts_search
 from app.reasoner import Reasoner
 from app.scanner import walk
+from app.session_index import reindex
+from app.session_reader import stream as stream_events
 from app.taxonomy import write_taxonomy
 
 
@@ -274,6 +277,64 @@ def create_app() -> FastAPI:
         conn.execute("UPDATE entries SET purpose=? WHERE id=?", (purpose, entry_id))
         conn.commit()
         return HTMLResponse(purpose)
+
+    @app.get("/sessions", response_class=HTMLResponse)
+    def sessions_list(request: Request, q: str = "", family: str = "", limit: int = 50):
+        conn = get_db()
+        try:
+            reindex(conn, claude_root)
+        except Exception:
+            pass  # render list even if reindex fails
+
+        if q.strip():
+            hits = fts_search(conn, q, family=family or None, limit=limit)
+            rows = hits
+            mode = "search"
+        else:
+            sql = ["SELECT session_id, family, cwd, started_at, prompt_count, first_prompt FROM sessions"]
+            params: list = []
+            if family:
+                sql.append("WHERE family=?"); params.append(family)
+            sql.append("ORDER BY started_at DESC LIMIT ?"); params.append(limit)
+            rows = [dict(r) for r in conn.execute(" ".join(sql), params).fetchall()]
+            mode = "list"
+
+        families = [
+            r["family"] for r in conn.execute(
+                "SELECT family, COUNT(*) AS n FROM sessions GROUP BY family ORDER BY n DESC"
+            ).fetchall() if r["family"]
+        ]
+
+        return templates.TemplateResponse(
+            request, "sessions.html",
+            {**_base_ctx(), "rows": rows, "mode": mode,
+             "q": q, "family": family, "families": families},
+        )
+
+    @app.get("/sessions/{session_id}", response_class=HTMLResponse)
+    def session_detail(request: Request, session_id: str, offset: int = 0, limit: int = 200):
+        conn = get_db()
+        row = conn.execute(
+            "SELECT * FROM sessions WHERE session_id=?", (session_id,)
+        ).fetchone()
+        if not row:
+            return HTMLResponse("(session not found)", status_code=404)
+        events = stream_events(Path(row["jsonl_path"]), offset=offset, limit=limit)
+        return templates.TemplateResponse(
+            request, "session_detail.html",
+            {**_base_ctx(), "session": dict(row), "events": events,
+             "offset": offset, "limit": limit},
+        )
+
+    @app.post("/reindex", response_class=HTMLResponse)
+    def reindex_now(request: Request, wipe: bool = False):
+        conn = get_db()
+        if wipe:
+            conn.execute("DELETE FROM sessions")
+            conn.execute("DELETE FROM prompts_fts")
+            conn.commit()
+        reindex(conn, claude_root, force_rebuild=wipe)
+        return HTMLResponse("<div class='banner banner-success'><strong>REINDEXED</strong></div>")
 
     return app
 
