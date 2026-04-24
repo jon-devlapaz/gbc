@@ -1,6 +1,289 @@
-body { font-family: ui-monospace, Menlo, monospace; max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
-header h1 { font-size: 1.25rem; }
-section { border: 1px solid #ddd; padding: 1rem; margin: 1rem 0; }
-h3 { margin-top: 0; }
-code { background: #f4f4f4; padding: 0 .25rem; }
-button { padding: .4rem .8rem; }
+/* Game Boy DMG-inspired styling for claude-workspace-tool
+   Palette: authentic 4-shade LCD green + shell beige for chrome + red LED for danger */
+
+:root {
+  --shell:         #b8b0a4;
+  --shell-highlight:#d4cab8;
+  --shell-dark:    #8a8478;
+  --shell-shadow:  #6a6458;
+  --bezel:         #2a3028;
+  --lcd-0:         #0f380f; /* darkest — ink */
+  --lcd-1:         #306230;
+  --lcd-2:         #8bac0f;
+  --lcd-3:         #9bbc0f; /* lightest — screen background */
+  --led-red:       #d42020;
+  --font-pixel:    "Press Start 2P", "VT323", "Courier New", monospace;
+  --font-lcd:      "VT323", "Courier New", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  image-rendering: pixelated;
+}
+
+html, body { min-height: 100vh; }
+
+body {
+  font-family: var(--font-lcd);
+  font-size: 20px;
+  line-height: 1.35;
+  color: var(--lcd-0);
+  background: var(--bezel);
+  background-image: radial-gradient(circle at 50% 0%, #3a4030 0%, #1a1f18 100%);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+/* ============ Header = Game Boy shell strip ============ */
+
+header {
+  background: var(--shell);
+  color: var(--bezel);
+  padding: 14px 20px;
+  border-radius: 8px 8px 0 0;
+  box-shadow:
+    inset 0 3px 0 var(--shell-highlight),
+    inset 0 -3px 0 var(--shell-shadow);
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+header::before {
+  content: "●";
+  color: var(--led-red);
+  text-shadow: 0 0 6px var(--led-red);
+  font-size: 14px;
+}
+
+header h1 {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--bezel);
+}
+
+header::after {
+  content: "DOT MATRIX WITH STEREO SOUND";
+  margin-left: auto;
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--shell-shadow);
+}
+
+/* ============ Main = LCD screen ============ */
+
+main {
+  background: var(--lcd-3);
+  color: var(--lcd-0);
+  padding: 28px 24px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+  box-shadow:
+    inset 0 0 0 4px var(--lcd-2),
+    inset 0 0 0 10px var(--bezel),
+    0 6px 20px rgba(0, 0, 0, 0.5);
+  border-radius: 0 0 8px 40px; /* asymmetric like GB bezel */
+  overflow: hidden;
+}
+
+/* scanline texture over LCD */
+main::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(to right,  transparent 0 2px, rgba(15,56,15,0.08) 2px 3px),
+    repeating-linear-gradient(to bottom, transparent 0 2px, rgba(15,56,15,0.08) 2px 3px);
+}
+
+main > * { position: relative; z-index: 1; }
+
+/* ============ Typography ============ */
+
+h1, h2, h3 {
+  font-family: var(--font-pixel);
+  color: var(--lcd-0);
+  text-shadow: 1px 1px 0 var(--lcd-2);
+  margin-bottom: 14px;
+  letter-spacing: 1px;
+}
+
+h1 { font-size: 14px; }
+h2 { font-size: 12px; margin-top: 6px; }
+h3 { font-size: 11px; margin-top: 0; }
+
+p { margin: 10px 0; }
+
+code {
+  font-family: var(--font-lcd);
+  background: var(--lcd-0);
+  color: var(--lcd-3);
+  padding: 1px 6px;
+  font-size: 0.9em;
+}
+
+a {
+  color: var(--lcd-0);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a:hover { background: var(--lcd-0); color: var(--lcd-3); }
+
+/* ============ Sections (status groups) ============ */
+
+section {
+  border: 2px solid var(--lcd-0);
+  padding: 14px;
+  margin: 14px 0;
+  background: var(--lcd-3);
+  box-shadow: 4px 4px 0 var(--lcd-0);
+}
+
+/* kill_candidate = danger → tinted with red LED accent */
+section:has(form) {
+  border-color: var(--led-red);
+  box-shadow: 4px 4px 0 var(--led-red);
+}
+section:has(form) h3::before {
+  content: "⚠ ";
+  color: var(--led-red);
+  text-shadow: 0 0 4px var(--led-red);
+}
+section:has(form) h3 { color: var(--led-red); text-shadow: 1px 1px 0 var(--lcd-2); }
+
+/* ============ Lists ============ */
+
+ul { list-style: none; padding: 0; }
+
+li {
+  padding: 6px 8px;
+  margin: 2px 0;
+  border-left: 3px solid transparent;
+}
+
+li:hover {
+  background: var(--lcd-2);
+  border-left-color: var(--lcd-0);
+}
+
+li::before {
+  content: "> ";
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--lcd-1);
+}
+
+li strong { font-family: var(--font-pixel); font-size: 11px; letter-spacing: 1px; }
+
+/* ============ Forms ============ */
+
+form { margin: 14px 0; }
+
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+label:hover { background: var(--lcd-2); }
+
+/* pixel checkbox */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--lcd-3);
+  border: 2px solid var(--lcd-0);
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  margin: 0;
+  vertical-align: middle;
+}
+
+input[type="checkbox"]:checked {
+  background: var(--lcd-0);
+  box-shadow: inset 0 0 0 2px var(--lcd-3);
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: 2px dashed var(--led-red);
+  outline-offset: 2px;
+}
+
+/* armed checkbox gets red treatment */
+input[type="checkbox"][name="armed"] {
+  border-color: var(--led-red);
+}
+input[type="checkbox"][name="armed"]:checked {
+  background: var(--led-red);
+  box-shadow: inset 0 0 0 2px var(--lcd-3);
+}
+label:has(input[name="armed"]) {
+  color: var(--led-red);
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  padding: 6px 8px;
+  margin-top: 10px;
+  border: 2px solid var(--led-red);
+  background: var(--lcd-3);
+}
+
+/* ============ Buttons = GB menu items ============ */
+
+button {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  letter-spacing: 1px;
+  background: var(--lcd-0);
+  color: var(--lcd-3);
+  border: 2px solid var(--lcd-0);
+  padding: 8px 16px;
+  margin: 10px 0;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--lcd-1);
+  text-transform: uppercase;
+  transition: none;
+}
+
+button::before { content: "▶ "; }
+
+button:hover {
+  background: var(--lcd-1);
+  box-shadow: 3px 3px 0 var(--lcd-0);
+}
+
+button:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--lcd-0);
+}
+
+button:focus-visible {
+  outline: 2px dashed var(--led-red);
+  outline-offset: 2px;
+}
+
+/* ============ Utility ============ */
+
+::selection { background: var(--lcd-0); color: var(--lcd-3); }
+
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--lcd-2); }
+::-webkit-scrollbar-thumb { background: var(--lcd-0); border: 2px solid var(--lcd-2); }
