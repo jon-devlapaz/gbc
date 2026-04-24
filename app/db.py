@@ -37,6 +37,45 @@ CREATE TABLE IF NOT EXISTS actions (
   state TEXT NOT NULL,
   error_detail TEXT
 );
+
+CREATE TABLE IF NOT EXISTS sessions (
+  session_id TEXT PRIMARY KEY,
+  family TEXT,
+  cwd TEXT,
+  started_at TEXT,
+  ended_at TEXT,
+  message_count INTEGER NOT NULL DEFAULT 0,
+  prompt_count INTEGER NOT NULL DEFAULT 0,
+  first_prompt TEXT,
+  jsonl_path TEXT NOT NULL UNIQUE,
+  jsonl_mtime REAL NOT NULL,
+  indexed_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS sessions_family     ON sessions(family);
+CREATE INDEX IF NOT EXISTS sessions_started_at ON sessions(started_at DESC);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS prompts_fts USING fts5(
+  session_id UNINDEXED,
+  timestamp UNINDEXED,
+  content,
+  tokenize = "unicode61"
+);
+
+CREATE TABLE IF NOT EXISTS families (
+  name TEXT PRIMARY KEY,
+  path_prefix TEXT NOT NULL,
+  is_override INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS index_runs (
+  id INTEGER PRIMARY KEY,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  files_seen INTEGER,
+  files_updated INTEGER,
+  error_count INTEGER
+);
 """
 
 
