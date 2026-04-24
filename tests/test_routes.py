@@ -48,6 +48,23 @@ def test_execute_dry_run_does_not_delete(client, tmp_path):
     assert (tmp_path / ".claude" / "paste-cache").exists()
 
 
+def test_entry_detail_renders(client, tmp_path):
+    client.post("/scan")
+    scan_id = _latest_scan_id(tmp_path)
+    entry_ids = _kill_candidate_ids(tmp_path, scan_id)
+    assert entry_ids
+    r = client.get(f"/entry/{entry_ids[0]}")
+    assert r.status_code == 200
+    assert "Metadata" in r.text
+    assert "Action history" in r.text
+    assert "Inode" in r.text
+
+
+def test_entry_detail_not_found(client):
+    r = client.get("/entry/999999")
+    assert r.status_code == 404
+
+
 def test_execute_armed_deletes(client, tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     client.post("/scan")

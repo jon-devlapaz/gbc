@@ -26,10 +26,13 @@
 
 <h2>Scan #{{ scan_id }}</h2>
 
+<p class="keyhint">▲▼ navigate · ◀▶ switch group · SPACE select · A (Enter) inspect · START submit</p>
+
+<div id="review-root">
 {% for group_label, status in groups %}
   {% set entries = by_status[status] %}
   {% if entries or status == "kill_candidate" %}
-  <section class="group group-{{ status }}">
+  <section class="group group-{{ status }}" data-status="{{ status }}">
     <h3>{{ group_label }} ({{ entries|length }})</h3>
 
     {% if status == "kill_candidate" %}
@@ -41,15 +44,16 @@
         </div>
         <ul class="entry-list">
           {% for e in entries %}
-            <li>
+            <li class="entry" data-entry-id="{{ e.id }}" tabindex="0">
               <label>
                 <input type="checkbox" name="entry_id" value="{{ e.id }}">
                 <strong>{{ e.path.split('/')[-1] }}</strong>
                 <span class="meta">{{ e.kind }} · {{ e.size_bytes|size }} · {{ e.mtime|age }}</span>
                 <span class="purpose">{{ e.purpose or "—" }}</span>
-                <button type="button" class="explain-btn"
-                        hx-post="/explain/{{ e.id }}" hx-target="closest .purpose" hx-swap="innerHTML">?</button>
               </label>
+              <a class="detail-link" href="/entry/{{ e.id }}">▼ inspect</a>
+              <button type="button" class="explain-btn"
+                      hx-post="/explain/{{ e.id }}" hx-target="closest .entry .purpose" hx-swap="innerHTML">?</button>
             </li>
           {% endfor %}
         </ul>
@@ -66,10 +70,11 @@
     {% else %}
       <ul class="entry-list">
         {% for e in entries %}
-          <li>
+          <li class="entry" data-entry-id="{{ e.id }}" tabindex="0">
             <strong>{{ e.path.split('/')[-1] }}</strong>
             <span class="meta">{{ e.kind }} · {{ e.size_bytes|size }} · {{ e.mtime|age }}</span>
             <span class="purpose">{{ e.purpose or e.reason }}</span>
+            <a class="detail-link" href="/entry/{{ e.id }}">▼ inspect</a>
           </li>
         {% endfor %}
       </ul>
@@ -77,6 +82,7 @@
   </section>
   {% endif %}
 {% endfor %}
+</div>
 
 <script>
 function toggleAll(btn, checked) {
@@ -85,12 +91,106 @@ function toggleAll(btn, checked) {
 }
 function confirmArmed(form) {
   const armed = form.querySelector('input[name="armed"]').checked;
-  if (!armed) return true; // dry-run, no confirm
+  if (!armed) return true;
   const selected = form.querySelectorAll('input[name="entry_id"]:checked').length;
-  if (selected === 0) {
-    alert("No entries selected.");
-    return false;
-  }
+  if (selected === 0) { alert("No entries selected."); return false; }
   return confirm(`ARMED: about to archive and delete ${selected} entr${selected === 1 ? 'y' : 'ies'}. Continue?`);
 }
+
+// ============ Game Boy keyboard nav ============
+(function() {
+  const root = document.getElementById('review-root');
+  if (!root) return;
+
+  const groups = Array.from(root.querySelectorAll('section.group'));
+  if (!groups.length) return;
+
+  let gIdx = 0;
+  let eIdx = 0;
+
+  function entriesIn(g) { return Array.from(g.querySelectorAll('li.entry')); }
+
+  function focusCurrent() {
+    document.querySelectorAll('.entry.gb-focus').forEach(el => el.classList.remove('gb-focus'));
+    const g = groups[gIdx];
+    const entries = entriesIn(g);
+    if (!entries.length) return;
+    if (eIdx >= entries.length) eIdx = entries.length - 1;
+    if (eIdx < 0) eIdx = 0;
+    const target = entries[eIdx];
+    target.classList.add('gb-focus');
+    target.focus({preventScroll: false});
+    target.scrollIntoView({block: 'nearest'});
+  }
+
+  // seed initial focus on first group with entries
+  for (let i = 0; i < groups.length; i++) {
+    if (entriesIn(groups[i]).length) { gIdx = i; break; }
+  }
+  focusCurrent();
+
+  document.addEventListener('keydown', (ev) => {
+    // don't hijack when typing in an input other than our checkboxes
+    if (ev.target.matches('input[type="text"], textarea, [contenteditable]')) return;
+
+    const g = groups[gIdx];
+    const entries = entriesIn(g);
+
+    switch (ev.key) {
+      case 'ArrowDown':
+        if (!entries.length) return;
+        eIdx = Math.min(eIdx + 1, entries.length - 1);
+        ev.preventDefault();
+        focusCurrent();
+        break;
+      case 'ArrowUp':
+        if (!entries.length) return;
+        eIdx = Math.max(eIdx - 1, 0);
+        ev.preventDefault();
+        focusCurrent();
+        break;
+      case 'ArrowRight': {
+        let next = gIdx;
+        for (let step = 1; step <= groups.length; step++) {
+          const cand = (gIdx + step) % groups.length;
+          if (entriesIn(groups[cand]).length) { next = cand; break; }
+        }
+        gIdx = next; eIdx = 0;
+        ev.preventDefault();
+        focusCurrent();
+        break;
+      }
+      case 'ArrowLeft': {
+        let prev = gIdx;
+        for (let step = 1; step <= groups.length; step++) {
+          const cand = (gIdx - step + groups.length) % groups.length;
+          if (entriesIn(groups[cand]).length) { prev = cand; break; }
+        }
+        gIdx = prev; eIdx = 0;
+        ev.preventDefault();
+        focusCurrent();
+        break;
+      }
+      case ' ': {
+        if (!entries.length) return;
+        const cb = entries[eIdx].querySelector('input[type="checkbox"]');
+        if (cb) { cb.checked = !cb.checked; ev.preventDefault(); }
+        break;
+      }
+      case 'Enter':
+      case 'a':
+      case 'A': {
+        if (!entries.length) return;
+        const link = entries[eIdx].querySelector('.detail-link');
+        if (link) { ev.preventDefault(); window.location.href = link.href; }
+        break;
+      }
+      case 'Escape':
+      case 'b':
+      case 'B':
+        // no-op on review (there's no deeper level). Back-out on detail pages.
+        break;
+    }
+  });
+})();
 </script>

@@ -114,6 +114,22 @@ def create_app() -> FastAPI:
 
         return _render_review(request, templates, conn, scan_id, result=result, ctx=_base_ctx())
 
+    @app.get("/entry/{entry_id}", response_class=HTMLResponse)
+    def entry_detail(request: Request, entry_id: int):
+        conn = get_db()
+        row = conn.execute("SELECT * FROM entries WHERE id=?", (entry_id,)).fetchone()
+        if not row:
+            return HTMLResponse("(entry not found)", status_code=404)
+        actions = conn.execute(
+            "SELECT * FROM actions WHERE entry_id=? ORDER BY ts DESC", (entry_id,)
+        ).fetchall()
+        sample_files = json.loads(row["sample_files"] or "[]")
+        return templates.TemplateResponse(
+            request, "entry.html",
+            {**_base_ctx(), "e": dict(row), "sample_files": sample_files,
+             "actions": [dict(a) for a in actions]},
+        )
+
     @app.post("/explain/{entry_id}", response_class=HTMLResponse)
     def explain(request: Request, entry_id: int):
         conn = get_db()

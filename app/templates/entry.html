@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+
+<p class="breadcrumb">
+  <a href="/review/{{ e.scan_id }}" id="back-link">◀ Scan #{{ e.scan_id }}</a>
+  <span class="keyhint">B / ESC · back</span>
+</p>
+
+<h2>{{ e.path.split('/')[-1] }}</h2>
+
+<section class="entry-detail">
+  <h3>Metadata</h3>
+  <dl class="metadata-grid">
+    <dt>Path</dt>           <dd><code>{{ e.path }}</code></dd>
+    <dt>Kind</dt>           <dd>{{ e.kind }}</dd>
+    <dt>Status</dt>         <dd class="status-{{ e.status }}">{{ e.status }}</dd>
+    <dt>Classifier rule</dt><dd>{{ e.reason }}</dd>
+    <dt>Purpose (LLM)</dt>
+    <dd>
+      <span id="purpose-text">{{ e.purpose or "—" }}</span>
+      {% if reasoner_enabled %}
+        <button type="button" class="explain-btn"
+                hx-post="/explain/{{ e.id }}" hx-target="#purpose-text" hx-swap="innerHTML">re-ask</button>
+      {% endif %}
+    </dd>
+    <dt>Size</dt>           <dd>{{ e.size_bytes|size }} ({{ e.size_bytes }} bytes)</dd>
+    <dt>File count</dt>     <dd>{{ e.file_count }}</dd>
+    <dt>Last mtime</dt>     <dd>{{ e.mtime }} ({{ e.mtime|age }})</dd>
+    <dt>Inode</dt>          <dd>{{ e.inode }}</dd>
+    <dt>Scan</dt>           <dd>#{{ e.scan_id }}</dd>
+    <dt>User decision</dt>  <dd>{{ e.user_decision or "—" }}</dd>
+  </dl>
+</section>
+
+{% if sample_files %}
+<section class="entry-detail">
+  <h3>Sample filenames ({{ sample_files|length }})</h3>
+  <ul class="entry-list">
+    {% for fn in sample_files %}
+      <li><code>{{ fn }}</code></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="entry-detail">
+  <h3>Action history ({{ actions|length }})</h3>
+  {% if actions %}
+  <table class="action-table">
+    <thead>
+      <tr><th>When</th><th>Action</th><th>State</th><th>Archive</th><th>Error</th></tr>
+    </thead>
+    <tbody>
+      {% for a in actions %}
+      <tr class="action-{{ a.state }}">
+        <td>{{ a.ts }}</td>
+        <td>{{ a.action }}</td>
+        <td><strong>{{ a.state }}</strong></td>
+        <td>{% if a.archive_path %}<code>{{ a.archive_path }}</code>{% else %}—{% endif %}</td>
+        <td>{{ a.error_detail or "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No actions yet.</p>
+  {% endif %}
+</section>
+
+<script>
+// Game Boy "B" = back
+document.addEventListener('keydown', (ev) => {
+  if (ev.target.matches('input, textarea, [contenteditable]')) return;
+  if (ev.key === 'Escape' || ev.key === 'b' || ev.key === 'B') {
+    const link = document.getElementById('back-link');
+    if (link) { ev.preventDefault(); window.location.href = link.href; }
+  }
+});
+</script>
+
+{% endblock %}
