@@ -10,7 +10,15 @@ from pathlib import Path
 
 MAX_CHILDREN = 50
 MAX_GRANDCHILDREN = 50
-PREVIEW_LINES = 15
+PREVIEW_LINES = 6
+TEXT_EXTENSIONS = frozenset({
+    ".md", ".markdown", ".txt", ".rst",
+    ".json", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".env",
+    ".py", ".sh", ".bash", ".zsh",
+    ".js", ".ts", ".tsx", ".jsx", ".mjs", ".cjs",
+    ".html", ".css",
+    ".sql",
+})
 
 PREVIEW_NAMES = frozenset({
     "SKILL.md", "SKILL.yml", "SKILL.yaml",
@@ -36,7 +44,15 @@ class FileNode:
     symlink_target: str | None = None
     preview: str | None = None
     error: str | None = None
+    is_text: bool = False
     children: list["FileNode"] = field(default_factory=list)
+
+
+def _is_text(path: Path) -> bool:
+    name = path.name.lower()
+    if name in PREVIEW_NAMES:
+        return True
+    return any(name.endswith(ext) for ext in TEXT_EXTENSIONS)
 
 
 def _is_sensitive_name(name: str) -> bool:
@@ -103,6 +119,7 @@ def _node(path: Path, rel_path: str, claude_root: Path | None = None) -> FileNod
         mtime_iso=datetime.fromtimestamp(st.st_mtime).isoformat(timespec="seconds"),
         abs_path=str(path),
         symlink_target=symlink_target,
+        is_text=(not is_dir) and _is_text(path),
     )
 
 

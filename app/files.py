@@ -67,6 +67,14 @@ def _assert_editable(path: Path, claude_root: Path) -> Path:
     return real
 
 
+def is_editable(path: Path, claude_root: Path) -> bool:
+    try:
+        _assert_editable(path, claude_root)
+        return True
+    except FileSafetyError:
+        return False
+
+
 def read(path: Path, claude_root: Path) -> str:
     real = _assert_inside(path, claude_root)
     if _is_sensitive(real):

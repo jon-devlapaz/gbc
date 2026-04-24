@@ -133,11 +133,13 @@ def create_app() -> FastAPI:
                 tree = inspect_dir(Path(row["path"]), claude_root=claude_root)
             except Exception:
                 tree = None
+        is_editable_dir = files_mod.is_editable(Path(row["path"]), claude_root) if row["kind"] == "dir" else False
         return templates.TemplateResponse(
             request, "entry.html",
             {**_base_ctx(), "e": dict(row), "sample_files": sample_files,
              "actions": [dict(a) for a in actions], "tree": tree,
-             "claude_root": str(claude_root)},
+             "claude_root": str(claude_root),
+             "is_editable_dir": is_editable_dir},
         )
 
     @app.get("/file", response_class=HTMLResponse)

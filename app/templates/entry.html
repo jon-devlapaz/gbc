@@ -37,16 +37,16 @@
   <h3>Contents — depth 2 ({{ tree.children|length }} immediate)</h3>
 
   <div class="tree-toolbar">
-    <input type="search" id="tree-filter" placeholder="filter (substring)…" autocomplete="off">
-    <button type="button" class="copy-btn" data-copy-text="{{ e.path }}">📋 dir path</button>
-    {% if e.kind == "dir" %}
+    <input type="search" id="tree-filter" placeholder="filter…" autocomplete="off">
+    <button type="button" class="copy-btn" data-copy-text="{{ e.path }}" title="copy dir path">📋</button>
+    {% if is_editable_dir %}
       <form hx-post="/duplicate" hx-target="#dup-result" hx-swap="innerHTML" style="display:inline">
         <input type="hidden" name="path" value="{{ e.path }}">
-        <button type="submit" class="dup-btn"
-                onclick="return confirm('Duplicate {{ e.path }} → {{ e.path }}-vN?')">⎘ duplicate</button>
+        <button type="submit" class="dup-btn" title="duplicate to {{ e.path|replace('/', '/') }}-vN"
+                onclick="return confirm('Duplicate {{ e.path }} → -vN?')">⎘</button>
       </form>
     {% endif %}
-    <a class="vscode-link" href="vscode://file{{ e.path }}">▶ VS Code</a>
+    <a class="vscode-link" href="vscode://file{{ e.path }}" title="open in VS Code">↗</a>
   </div>
   <div id="dup-result"></div>
 
@@ -59,14 +59,15 @@
           {% if c.symlink_target %}<span class="symlink">→ {{ c.symlink_target }}</span>{% endif %}
           <span class="meta">{{ c.kind }}{% if c.kind == "file" %} · {{ c.size_bytes|size }}{% endif %} · {{ c.mtime_iso|age }}</span>
           <span class="row-actions">
-            <button type="button" class="copy-btn" data-copy-text="{{ c.abs_path }}">📋 path</button>
-            {% if c.kind == "file" %}
-              <button type="button" class="copy-btn" data-copy-target="prev-{{ cid }}">📋 preview</button>
+            <button type="button" class="copy-btn" data-copy-text="{{ c.abs_path }}" title="copy path">📋</button>
+            {% if c.is_text %}
+              <button type="button" class="copy-btn" data-copy-target="prev-{{ cid }}" title="copy preview">📋⌨</button>
               <button type="button" class="expand-btn"
                       hx-get="/file?path={{ c.abs_path|urlencode }}"
-                      hx-target="next .file-slot" hx-swap="innerHTML">▽ open / edit</button>
+                      hx-target="next .file-slot" hx-swap="innerHTML"
+                      title="open / edit">▽</button>
             {% endif %}
-            <a class="vscode-link" href="vscode://file{{ c.abs_path }}">VS Code</a>
+            <a class="vscode-link" href="vscode://file{{ c.abs_path }}" title="open in VS Code">↗</a>
           </span>
         </div>
         {% if c.error %}<div class="tree-error">{{ c.error }}</div>{% endif %}
@@ -82,14 +83,15 @@
                   {% if g.symlink_target %}<span class="symlink">→ {{ g.symlink_target }}</span>{% endif %}
                   <span class="meta">{{ g.kind }}{% if g.kind == "file" %} · {{ g.size_bytes|size }}{% endif %} · {{ g.mtime_iso|age }}</span>
                   <span class="row-actions">
-                    <button type="button" class="copy-btn" data-copy-text="{{ g.abs_path }}">📋</button>
-                    {% if g.kind == "file" %}
-                      <button type="button" class="copy-btn" data-copy-target="prev-{{ gid }}">📋 preview</button>
+                    <button type="button" class="copy-btn" data-copy-text="{{ g.abs_path }}" title="copy path">📋</button>
+                    {% if g.is_text %}
+                      <button type="button" class="copy-btn" data-copy-target="prev-{{ gid }}" title="copy preview">📋⌨</button>
                       <button type="button" class="expand-btn"
                               hx-get="/file?path={{ g.abs_path|urlencode }}"
-                              hx-target="next .file-slot" hx-swap="innerHTML">▽ open / edit</button>
+                              hx-target="next .file-slot" hx-swap="innerHTML"
+                              title="open / edit">▽</button>
                     {% endif %}
-                    <a class="vscode-link" href="vscode://file{{ g.abs_path }}">VS Code</a>
+                    <a class="vscode-link" href="vscode://file{{ g.abs_path }}" title="open in VS Code">↗</a>
                   </span>
                 </div>
                 {% if g.preview %}<pre id="prev-{{ gid }}" class="preview">{{ g.preview }}</pre>{% endif %}

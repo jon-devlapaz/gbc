@@ -582,22 +582,29 @@ button:focus-visible {
 
 .row-actions {
   display: inline-flex;
-  gap: 4px;
+  gap: 3px;
   margin-left: auto;
+  opacity: 0;
+  transition: opacity 100ms;
 }
+.tree-node:hover > .tree-row > .row-actions,
+.tree-node:focus-within > .tree-row > .row-actions,
+.tree-node.gb-focus > .tree-row > .row-actions { opacity: 1; }
 .copy-btn, .expand-btn, .dup-btn, .vscode-link {
   font-family: var(--font-pixel);
-  font-size: 8px;
-  padding: 3px 6px;
+  font-size: 9px;
+  padding: 2px 5px;
   margin: 0;
-  letter-spacing: 1px;
+  letter-spacing: 0;
   border: 1px solid var(--lcd-0);
   background: var(--lcd-2);
   color: var(--lcd-0);
   cursor: pointer;
   text-decoration: none;
-  line-height: 1.4;
+  line-height: 1.2;
   box-shadow: 1px 1px 0 var(--lcd-0);
+  display: inline-flex;
+  align-items: center;
 }
 .copy-btn:hover, .expand-btn:hover, .dup-btn:hover, .vscode-link:hover {
   background: var(--lcd-0); color: var(--lcd-3);
