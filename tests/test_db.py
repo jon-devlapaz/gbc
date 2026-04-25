@@ -49,3 +49,35 @@ def test_index_runs_table_exists(db):
     for c in ["id", "started_at", "finished_at", "files_seen",
              "files_updated", "error_count"]:
         assert c in cols
+
+
+def test_cost_events_table_exists(db):
+    cols = {row[1] for row in db.execute("PRAGMA table_info(cost_events)")}
+    assert {
+        "id", "message_uuid", "session_id", "parent_session_id",
+        "jsonl_path", "ts", "model", "service_tier",
+        "input_tokens", "output_tokens",
+        "cache_creation_5m_tokens", "cache_creation_1h_tokens",
+        "cache_read_tokens",
+        "input_rate", "output_rate",
+        "cache_write_5m_rate", "cache_write_1h_rate", "cache_read_rate",
+        "cost_usd", "unknown_pricing",
+    }.issubset(cols)
+
+
+def test_cost_events_message_uuid_unique(db):
+    db.execute(
+        "INSERT INTO cost_events (message_uuid, session_id, jsonl_path, ts, model, "
+        "input_rate, output_rate, cache_write_5m_rate, cache_write_1h_rate, cache_read_rate, cost_usd) "
+        "VALUES ('u1', 's1', '/p', '2026-04-25T00:00:00Z', 'm', 0,0,0,0,0,0)"
+    )
+    import sqlite3
+    try:
+        db.execute(
+            "INSERT INTO cost_events (message_uuid, session_id, jsonl_path, ts, model, "
+            "input_rate, output_rate, cache_write_5m_rate, cache_write_1h_rate, cache_read_rate, cost_usd) "
+            "VALUES ('u1', 's2', '/p', '2026-04-25T00:00:00Z', 'm', 0,0,0,0,0,0)"
+        )
+        assert False, "expected IntegrityError"
+    except sqlite3.IntegrityError:
+        pass

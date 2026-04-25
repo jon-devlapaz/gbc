@@ -76,6 +76,34 @@ CREATE TABLE IF NOT EXISTS index_runs (
   files_updated INTEGER,
   error_count INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS cost_events (
+  id INTEGER PRIMARY KEY,
+  message_uuid TEXT NOT NULL UNIQUE,
+  session_id TEXT NOT NULL,
+  parent_session_id TEXT,
+  jsonl_path TEXT NOT NULL,
+  ts TEXT NOT NULL,
+  model TEXT NOT NULL,
+  service_tier TEXT,
+  input_tokens INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_creation_5m_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_creation_1h_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+  input_rate REAL NOT NULL,
+  output_rate REAL NOT NULL,
+  cache_write_5m_rate REAL NOT NULL,
+  cache_write_1h_rate REAL NOT NULL,
+  cache_read_rate REAL NOT NULL,
+  cost_usd REAL NOT NULL,
+  unknown_pricing INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS cost_events_ts      ON cost_events(ts DESC);
+CREATE INDEX IF NOT EXISTS cost_events_session ON cost_events(session_id);
+CREATE INDEX IF NOT EXISTS cost_events_parent  ON cost_events(parent_session_id);
+CREATE INDEX IF NOT EXISTS cost_events_model   ON cost_events(model);
 """
 
 
