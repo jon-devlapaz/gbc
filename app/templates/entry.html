@@ -50,6 +50,18 @@
   </dl>
 </section>
 
+{% if e.kind == "file" %}
+<section class="entry-detail">
+  <h3>Contents</h3>
+  <div class="file-slot"
+       hx-get="/file?path={{ e.path|urlencode }}"
+       hx-trigger="load"
+       hx-swap="innerHTML">
+    <p class="muted">loading…</p>
+  </div>
+</section>
+{% endif %}
+
 {% if tree and tree.children %}
 <section class="entry-detail">
   <h3>Contents — depth 2 ({{ tree.children|length }} immediate)</h3>
