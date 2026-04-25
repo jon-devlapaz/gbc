@@ -61,6 +61,21 @@
     });
     document.body.addEventListener('htmx:responseError', (ev) => setLed('bad', 'http ' + ev.detail.xhr.status));
     document.body.addEventListener('htmx:sendError', () => setLed('bad', 'network err'));
+
+    // File-view edit/cancel toggle (delegated)
+    document.addEventListener('click', (ev) => {
+      const editBtn = ev.target.closest('.edit-btn');
+      if (editBtn) {
+        const v = editBtn.closest('.file-view');
+        if (v) { v.dataset.mode = 'edit'; v.querySelector('textarea')?.focus(); }
+        return;
+      }
+      const cancelBtn = ev.target.closest('.cancel-btn');
+      if (cancelBtn) {
+        const v = cancelBtn.closest('.file-view');
+        if (v) v.dataset.mode = 'view';
+      }
+    });
   </script>
 </body>
 </html>

@@ -862,6 +862,25 @@ button:focus-visible {
   resize: vertical;
 }
 .file-view textarea:focus { outline: 2px dashed var(--led-red); outline-offset: 2px; }
+
+/* View / Edit mode toggle: only one visible at a time */
+.file-view[data-mode="view"] .edit-mode  { display: none; }
+.file-view[data-mode="edit"] .view-mode  { display: none; }
+.file-view[data-mode="edit"] .edit-btn   { display: none; }
+.file-view[data-mode="view"] .cancel-btn { display: none; }
+
+.edit-btn, .cancel-btn {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  padding: 3px 8px;
+  border: 1px solid var(--lcd-0);
+  background: var(--lcd-2);
+  color: var(--lcd-0);
+  cursor: pointer;
+  box-shadow: 1px 1px 0 var(--lcd-0);
+  letter-spacing: 1px;
+}
+.edit-btn:hover, .cancel-btn:hover { background: var(--lcd-0); color: var(--lcd-3); }
 .form-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .save-result:empty { display: none; }
 .save-result { margin-top: 8px; }

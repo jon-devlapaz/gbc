@@ -1,18 +1,24 @@
-<div class="file-view" data-path="{{ path }}">
+{% set cid = path|replace('/', '_')|replace('.', '_') %}
+<div class="file-view" data-path="{{ path }}" data-mode="view" data-cid="{{ cid }}">
   <div class="file-view-header">
     <code class="file-path">{{ path }}</code>
-    <button type="button" class="copy-btn" data-copy-text="{{ path }}">📋 path</button>
-    <button type="button" class="copy-btn" data-copy-target="content-{{ path|replace('/', '_') }}">📋 content</button>
-    <a class="vscode-link" href="vscode://file{{ path }}">VS Code</a>
+    <button type="button" class="copy-btn" data-copy-text="{{ path }}" data-tip="copy path">📋</button>
+    <button type="button" class="copy-btn" data-copy-target="content-{{ cid }}" data-tip="copy content">📋⌨</button>
+    <button type="button" class="edit-btn" data-tip="edit inline">✎ edit</button>
+    <a class="vscode-link" href="vscode://file{{ path }}" data-tip="open in VS Code">↗</a>
   </div>
-  <pre id="content-{{ path|replace('/', '_') }}" class="full-content">{{ content }}</pre>
-  <form hx-post="/file" hx-target="next .save-result" hx-swap="innerHTML">
+
+  <pre id="content-{{ cid }}" class="full-content view-mode">{{ content }}</pre>
+
+  <form class="edit-mode" hx-post="/file" hx-target="next .save-result" hx-swap="innerHTML">
     <input type="hidden" name="path" value="{{ path }}">
     <textarea name="content" rows="14" spellcheck="false">{{ content }}</textarea>
     <div class="form-row">
       <button type="submit">Save</button>
+      <button type="button" class="cancel-btn">Cancel</button>
       <span class="muted">Edits go to <code>{{ path }}</code> (whitelisted subdir + non-sensitive only).</span>
     </div>
   </form>
+
   <div class="save-result"></div>
 </div>
