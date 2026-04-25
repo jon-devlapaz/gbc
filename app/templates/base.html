@@ -33,17 +33,25 @@
       led.className = 'led led-' + state;
       if (label && text !== undefined) label.textContent = text;
     }
+    let healthTimer = null;
+    function scheduleNext(ms) {
+      if (healthTimer) clearTimeout(healthTimer);
+      healthTimer = setTimeout(refreshHealth, ms);
+    }
     async function refreshHealth() {
       try {
-        const r = await fetch('/health');
-        if (!r.ok) { setLed('bad', 'reasoner: error'); return; }
+        const r = await fetch('/health', { cache: 'no-store' });
+        if (!r.ok) { setLed('bad', 'reasoner: error'); scheduleNext(3000); return; }
         const j = await r.json();
         if (j.reasoner) setLed('ok', 'reasoner · ' + j.provider);
         else setLed('warn', 'reasoner off');
-      } catch (e) { setLed('bad', 'connect fail'); }
+        scheduleNext(30000);
+      } catch (e) {
+        setLed('bad', 'connect fail');
+        scheduleNext(3000);  // fast retry while server is down
+      }
     }
     refreshHealth();
-    setInterval(refreshHealth, 30000);
 
     // Pulse LED during active HTMX work
     document.body.addEventListener('htmx:beforeRequest', () => setLed('busy', 'thinking…'));
