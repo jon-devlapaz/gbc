@@ -123,6 +123,68 @@ data/
   taxonomy.md        # generated, gitignored
 ```
 
+## Cost watcher (`gbc-watch`)
+
+The cost watcher is a Node sidecar that tails Claude Code session JSONL files
+under `~/.claude/projects/` and posts token-usage records to FastAPI's
+`/ingest/usage`. The `/costs` page then renders running USD totals.
+
+### One-time setup
+
+```bash
+cd watcher
+npm install
+```
+
+Add this function to `~/.zshrc`:
+
+```zsh
+gbc-watch() {
+  cd ~/dev/claude-workspace-tool/watcher && node index.js
+}
+```
+
+Then `source ~/.zshrc`.
+
+### Run
+
+```bash
+# terminal 1
+gbc           # FastAPI on http://127.0.0.1:7878
+
+# terminal 2
+gbc-watch     # tails ~/.claude/projects/, posts to /ingest/usage
+```
+
+Open `http://127.0.0.1:7878/costs`. The first run backfills from existing
+JSONL files (idempotent — safe to restart any time). After backfill, totals
+update reactively as new assistant messages are written.
+
+Order of `gbc` / `gbc-watch` doesn't matter — the watcher's retry queue
+absorbs `ECONNREFUSED` while FastAPI is starting.
+
+### Adding a new model's pricing
+
+When Anthropic releases a new model, you'll see a `⚠ N events without pricing`
+warning on `/costs`. To resolve:
+
+1. Add an entry to `app/pricing.py`'s `RATES` dict (key: `(model, "standard")`).
+2. Run: `python -m app.cost_recompute`
+3. Refresh `/costs`.
+
+Existing rows keep the rates they were ingested with — the recompute only
+updates rows that were marked `unknown_pricing=1`.
+
+### Environment overrides
+
+The watcher reads three optional env vars:
+
+| Variable | Default |
+|---|---|
+| `CCT_INGEST_URL` | `http://127.0.0.1:7878/ingest/usage` |
+| `CCT_PROJECTS_DIR` | `~/.claude/projects` |
+| `CCT_STATE_PATH` | `<repo>/data/.watcher-state.json` |
+
 ## License
 
 MIT-ish. Personal tool. Use at own risk.
