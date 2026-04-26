@@ -67,6 +67,7 @@ function parseLine(line, path) {
   if (obj.type !== 'assistant') return null;
   const msg = obj.message;
   if (!msg || !msg.usage) return null;
+  if (!obj.uuid || !obj.timestamp || !msg.model) return null;
   const u = msg.usage;
   const cc = u.cache_creation || {};
   return {

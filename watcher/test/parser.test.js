@@ -132,3 +132,27 @@ test('parseJsonlSince treats truncated file (offset > size) as reset', () => {
     assert.equal(out.records[0].message_uuid, 'm-1');
   } finally { rmSync(dir, { recursive: true }); }
 });
+
+test('parseJsonlSince skips assistant lines missing uuid/timestamp/model', () => {
+  const dir = tmp();
+  try {
+    const path = join(dir, 'sess-1.jsonl');
+    const lines = [
+      // missing uuid
+      JSON.stringify({ type: 'assistant', timestamp: '2026-04-25T10:00:00Z',
+        message: { model: 'claude-opus-4-7', usage: { input_tokens: 1, output_tokens: 0 } } }),
+      // missing timestamp
+      JSON.stringify({ type: 'assistant', uuid: 'm-no-ts',
+        message: { model: 'claude-opus-4-7', usage: { input_tokens: 1, output_tokens: 0 } } }),
+      // missing model
+      JSON.stringify({ type: 'assistant', uuid: 'm-no-model', timestamp: '2026-04-25T10:00:00Z',
+        message: { usage: { input_tokens: 1, output_tokens: 0 } } }),
+      // valid line for control
+      JSON.stringify(sample({ uuid: 'm-good' })),
+    ];
+    writeFileSync(path, lines.join('\n') + '\n');
+    const out = parseJsonlSince(path, 0);
+    assert.equal(out.records.length, 1);
+    assert.equal(out.records[0].message_uuid, 'm-good');
+  } finally { rmSync(dir, { recursive: true }); }
+});
