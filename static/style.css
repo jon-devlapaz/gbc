@@ -920,3 +920,97 @@ button:focus-visible {
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track { background: var(--lcd-2); }
 ::-webkit-scrollbar-thumb { background: var(--lcd-0); border: 2px solid var(--lcd-2); }
+
+/* === costs page === */
+.costs h2,
+.costs h3 { font-family: 'Press Start 2P', monospace; letter-spacing: 0.05em; }
+.costs h3 { font-size: 0.7rem; margin-top: 1.25rem; opacity: 0.85; }
+
+.costs-summary {
+  border: 1px solid var(--dmg-edge, #2c3a2c);
+  padding: 1rem 1.25rem;
+  background: var(--dmg-screen, #1a221a);
+  margin-bottom: 1rem;
+}
+.cost-big .cost-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  opacity: 0.7;
+  margin-bottom: 0.4rem;
+}
+.cost-big .cost-value {
+  font-family: 'VT323', monospace;
+  font-size: 3.5rem;
+  line-height: 1;
+}
+.cost-secondary {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 1.5rem;
+  font-family: 'VT323', monospace;
+  font-size: 1.1rem;
+  opacity: 0.8;
+}
+.cost-secondary strong { font-weight: normal; opacity: 1; }
+
+.bar-list {
+  list-style: none;
+  padding: 0;
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
+}
+.bar-list li {
+  display: grid;
+  grid-template-columns: 10rem 1fr 8rem;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+.bar-label { opacity: 0.85; }
+.bar-track {
+  height: 0.8rem;
+  background: var(--dmg-edge, #2c3a2c);
+  position: relative;
+  overflow: hidden;
+}
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--dmg-text, #9bbc0f);
+}
+.bar-value { text-align: right; opacity: 0.85; }
+
+.costs-sessions table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
+}
+.costs-sessions th,
+.costs-sessions td {
+  padding: 0.3rem 0.6rem;
+  border-bottom: 1px solid var(--dmg-edge, #2c3a2c);
+  text-align: left;
+}
+.costs-sessions th {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  opacity: 0.7;
+}
+.badge {
+  display: inline-block;
+  padding: 0 0.3rem;
+  border: 1px solid currentColor;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.warn {
+  border: 1px solid #b88;
+  color: #d99;
+  background: rgba(180,80,80,0.1);
+  padding: 0.5rem 0.75rem;
+  margin: 0.75rem 0;
+  font-family: 'VT323', monospace;
+}
+.muted { opacity: 0.6; }
