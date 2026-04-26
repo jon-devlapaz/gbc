@@ -71,7 +71,6 @@ def test_cost_events_message_uuid_unique(db):
         "input_rate, output_rate, cache_write_5m_rate, cache_write_1h_rate, cache_read_rate, cost_usd) "
         "VALUES ('u1', 's1', '/p', '2026-04-25T00:00:00Z', 'm', 0,0,0,0,0,0)"
     )
-    import sqlite3
     try:
         db.execute(
             "INSERT INTO cost_events (message_uuid, session_id, jsonl_path, ts, model, "

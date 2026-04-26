@@ -102,7 +102,9 @@ CREATE TABLE IF NOT EXISTS cost_events (
 
 CREATE INDEX IF NOT EXISTS cost_events_ts      ON cost_events(ts DESC);
 CREATE INDEX IF NOT EXISTS cost_events_session ON cost_events(session_id);
-CREATE INDEX IF NOT EXISTS cost_events_parent  ON cost_events(parent_session_id);
+CREATE INDEX IF NOT EXISTS cost_events_parent
+  ON cost_events(parent_session_id)
+  WHERE parent_session_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS cost_events_model   ON cost_events(model);
 """
 
