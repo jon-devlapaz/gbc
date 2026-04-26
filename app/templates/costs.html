@@ -15,13 +15,15 @@
           hx-post="/costs/ask"
           hx-target="#qa-result"
           hx-swap="innerHTML"
-          onsubmit="setTimeout(()=>this.querySelector('input[name=question]').value='',50)">
+          hx-indicator=".qa-loading"
+          onsubmit="setTimeout(() => this.querySelector('input[name=question]').value = '', 0)">
       <input type="text"
              name="question"
              placeholder="e.g., What did I spend yesterday?"
              autocomplete="off"
              required>
       <button type="submit">ASK</button>
+      <span class="qa-loading"></span>
     </form>
     <div class="qa-chips">
       {% for chip in qa_chips %}

@@ -926,6 +926,21 @@ button:focus-visible {
 .costs h3 { font-family: 'Press Start 2P', monospace; letter-spacing: 0.05em; }
 .costs h3 { font-size: 0.7rem; margin-top: 1.25rem; opacity: 0.85; }
 
+/* Fix 2+3: Override the global section:has(form) danger treatment for the costs page —
+   the .costs-qa form is functional, not destructive. */
+.costs section,
+section.costs,
+section.costs-qa,
+section.costs-summary {
+  border-color: var(--lcd-0, #0f380f) !important;
+  box-shadow: 4px 4px 0 var(--lcd-0, #0f380f) !important;
+}
+.costs h2::before,
+.costs h3::before { content: none !important; }
+.costs h2,
+.costs h3 { color: var(--lcd-0, #0f380f) !important; }
+.costs-qa h3 { color: var(--lcd-0, #0f380f) !important; }
+
 .costs-summary {
   border: 1px solid var(--bezel, #2a3028);
   padding: 1rem 1.25rem;
@@ -959,20 +974,25 @@ button:focus-visible {
 .bar-list {
   list-style: none;
   padding: 0;
+  margin: 0;
   font-family: 'VT323', monospace;
   font-size: 1rem;
 }
 .bar-list li {
   display: grid;
-  grid-template-columns: 10rem 1fr 8rem;
+  grid-template-columns: 12rem 1fr 8rem;
   gap: 0.75rem;
   align-items: center;
-  margin-bottom: 0.4rem;
+  margin: 0 0 0.4rem 0;
+  padding: 0;
+  border-left: none;
 }
+.bar-list li::before { content: none; }
+.bar-list li:hover { background: transparent; border-left-color: transparent; }
 .bar-label { color: var(--lcd-0, #0f380f); }
 .bar-track {
-  height: 0.8rem;
-  background: var(--lcd-1, #306230);     /* mid-dark green track */
+  height: 1.2rem;
+  background: var(--lcd-2, #8bac0f);    /* lighter than page bg, like an empty LCD pixel */
   border: 1px solid var(--lcd-0, #0f380f);
   position: relative;
   overflow: hidden;
@@ -980,7 +1000,7 @@ button:focus-visible {
 .bar-fill {
   display: block;
   height: 100%;
-  background: var(--lcd-0, #0f380f);     /* darkest ink — high contrast */
+  background: var(--lcd-0, #0f380f);    /* darkest ink — max contrast against lighter track */
 }
 .bar-value { text-align: right; color: var(--lcd-0, #0f380f); }
 
@@ -1077,3 +1097,25 @@ button:focus-visible {
 .qa-answer .qa-question { color: var(--lcd-2, #8bac0f); margin-bottom: 0.4rem; }
 .qa-answer .qa-meta { font-size: 0.8rem; margin-top: 0.4rem; }
 .muted { opacity: 0.6; }
+
+/* Fix 6: Q&A loading indicator */
+.qa-loading {
+  display: none;
+  font-family: 'VT323', monospace;
+  font-size: 1rem;
+  color: var(--lcd-1, #306230);
+  margin-left: 0.5rem;
+}
+.qa-loading.htmx-request,
+.htmx-request .qa-loading { display: inline; }
+.qa-loading::after {
+  content: "thinking";
+  animation: qa-dots 1.5s steps(4, end) infinite;
+}
+@keyframes qa-dots {
+  0%   { content: "thinking"; }
+  25%  { content: "thinking."; }
+  50%  { content: "thinking.."; }
+  75%  { content: "thinking..."; }
+  100% { content: "thinking"; }
+}
