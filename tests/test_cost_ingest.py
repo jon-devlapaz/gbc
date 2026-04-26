@@ -105,3 +105,11 @@ def test_ingest_tier_fallback_to_standard(client, tmp_path):
     row = db.execute("SELECT unknown_pricing, input_rate FROM cost_events WHERE message_uuid='u-pri'").fetchone()
     assert row[0] == 0
     assert row[1] == 15.0
+
+
+def test_ingest_within_batch_duplicate(client):
+    p = _payload(message_uuid="dup")
+    r = client.post("/ingest/usage", json={"events": [p, p]})
+    body = r.json()
+    assert body["inserted"] == 1
+    assert body["skipped"] == 1

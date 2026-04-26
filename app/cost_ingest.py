@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Callable, Optional
 import sqlite3
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel, Field, field_validator
 
 from app.pricing import resolve
@@ -33,9 +33,19 @@ class UsageEvent(BaseModel):
             raise ValueError(f"token count out of range: {v}")
         return v
 
+    @field_validator("ts")
+    @classmethod
+    def _ts_iso8601(cls, v: str) -> str:
+        from datetime import datetime
+        try:
+            datetime.fromisoformat(v.replace("Z", "+00:00"))
+        except ValueError as e:
+            raise ValueError(f"ts must be ISO-8601 (e.g. 2026-04-25T10:00:00Z): {v!r}") from e
+        return v
+
 
 class UsageBatch(BaseModel):
-    events: list[UsageEvent] = Field(min_length=1)
+    events: list[UsageEvent] = Field(min_length=1, max_length=500)
 
 
 def _compute_cost_usd(e: UsageEvent, rates: dict) -> float:
