@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from app import cost_ingest as cost_ingest_mod
 from app import db as db_mod
 from app import files as files_mod
 from app.classifier import classify
@@ -56,6 +57,8 @@ def create_app() -> FastAPI:
 
     def get_db() -> sqlite3.Connection:
         return db_mod.connect(db_path)
+
+    cost_ingest_mod.register_routes(app, get_db)
 
     def _base_ctx() -> dict:
         return {"reasoner_enabled": reasoner_enabled, "reasoner_provider": reasoner_provider}
