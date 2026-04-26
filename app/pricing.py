@@ -48,4 +48,4 @@ def resolve(model: str, service_tier: str | None) -> tuple[dict, bool]:
         return RATES[(model, tier)], False
     if (model, "standard") in RATES:
         return RATES[(model, "standard")], False
-    return ZERO_RATES, True
+    return ZERO_RATES.copy(), True
