@@ -1,0 +1,63 @@
+{% macro fmt_usd(v) -%}
+${{ "%.2f"|format(v) }}
+{%- endmacro %}
+
+{% macro fmt_tokens(n) -%}
+{% if n >= 1_000_000 %}{{ "%.1fm"|format(n/1_000_000) }}{% elif n >= 1_000 %}{{ "%.0fk"|format(n/1_000) }}{% else %}{{ n }}{% endif %}
+{%- endmacro %}
+
+<div class="costs-summary">
+  <div class="cost-big">
+    <div class="cost-label">TODAY</div>
+    <div class="cost-value">{{ fmt_usd(today_usd) }}</div>
+  </div>
+  <div class="cost-secondary">
+    <span>7 DAYS <strong>{{ fmt_usd(week_usd) }}</strong></span>
+    <span>30 DAYS <strong>{{ fmt_usd(month_usd) }}</strong></span>
+  </div>
+</div>
+
+<div class="costs-bymodel">
+  <h3>BY MODEL (last 7d)</h3>
+  {% if by_model %}
+    <ul class="bar-list">
+      {% for r in by_model %}
+        <li>
+          <span class="bar-label">{{ r.model }}</span>
+          <span class="bar-track"><span class="bar-fill" style="width: {{ "%.1f"|format(r.pct) }}%"></span></span>
+          <span class="bar-value">{{ fmt_usd(r.cost_usd) }} ({{ "%.0f"|format(r.pct) }}%)</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No cost events yet. Start the watcher with <code>gbc-watch</code> in another terminal — it will backfill from your existing JSONL files, then update live as you work.</p>
+  {% endif %}
+</div>
+
+{% if unknown_count > 0 %}
+<div class="warn">⚠ {{ unknown_count }} events without pricing. Add the model to <code>app/pricing.py</code> and run <code>python -m app.cost_recompute</code>.</div>
+{% endif %}
+
+<div class="costs-sessions">
+  <h3>RECENT SESSIONS</h3>
+  {% if sessions %}
+  <table>
+    <thead>
+      <tr><th>STARTED</th><th>SESSION</th><th>MODEL</th><th>TOKENS</th><th>COST</th></tr>
+    </thead>
+    <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td>{{ s.last_ts }}</td>
+        <td>{{ s.session_id[:12] }}{% if s.subagent_count %} <span class="badge">+{{ s.subagent_count }}</span>{% endif %}</td>
+        <td>{{ s.last_model }}</td>
+        <td>{{ fmt_tokens(s.total_tokens) }}</td>
+        <td>{{ fmt_usd(s.cost_usd) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">—</p>
+  {% endif %}
+</div>

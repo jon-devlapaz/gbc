@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="costs">
+  <h2>COSTS</h2>
+  <div id="costs-body"
+       hx-get="/costs/partial"
+       hx-trigger="every 5s"
+       hx-swap="innerHTML">
+    {% include "_costs_body.html" %}
+  </div>
+</section>
+{% endblock %}

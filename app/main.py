@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app import cost_ingest as cost_ingest_mod
+from app import cost_query as cost_query_mod
 from app import db as db_mod
 from app import files as files_mod
 from app.classifier import classify
@@ -62,6 +63,41 @@ def create_app() -> FastAPI:
 
     def _base_ctx() -> dict:
         return {"reasoner_enabled": reasoner_enabled, "reasoner_provider": reasoner_provider}
+
+    def _costs_ctx(conn) -> dict:
+        today = cost_query_mod.today_total(conn)
+        week = cost_query_mod.range_total(conn, days=7)
+        month = cost_query_mod.range_total(conn, days=30)
+        bm = cost_query_mod.by_model(conn, days=7)
+        bm_total = sum(c for _, c in bm) or 1.0
+        bm_rows = [
+            {"model": m, "cost_usd": c, "pct": (c / bm_total) * 100}
+            for m, c in bm
+        ]
+        sessions = cost_query_mod.by_session(conn, limit=50)
+        unknown_count = conn.execute(
+            "SELECT COUNT(*) FROM cost_events WHERE unknown_pricing = 1"
+        ).fetchone()[0]
+        return {
+            "today_usd": today,
+            "week_usd": week,
+            "month_usd": month,
+            "by_model": bm_rows,
+            "sessions": sessions,
+            "unknown_count": unknown_count,
+        }
+
+    @app.get("/costs", response_class=HTMLResponse)
+    def costs(request: Request):
+        conn = get_db()
+        ctx = _base_ctx() | _costs_ctx(conn)
+        return templates.TemplateResponse(request, "costs.html", ctx)
+
+    @app.get("/costs/partial", response_class=HTMLResponse)
+    def costs_partial(request: Request):
+        conn = get_db()
+        ctx = _costs_ctx(conn)
+        return templates.TemplateResponse(request, "_costs_body.html", ctx)
 
     @app.get("/health")
     def health():
