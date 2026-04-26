@@ -44,6 +44,22 @@ def by_model(conn: sqlite3.Connection, days: int) -> list[tuple[str, float]]:
     return [(r[0], float(r[1])) for r in rows]
 
 
+def by_cwd(conn: sqlite3.Connection, days: int) -> list[tuple[str, float]]:
+    """[(cwd, total_cost), ...] for last `days` days, NULL/empty cwd grouped as 'unknown'. Sorted desc."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    rows = conn.execute(
+        """
+        SELECT COALESCE(NULLIF(cwd, ''), 'unknown') AS cwd, SUM(cost_usd) AS total
+        FROM cost_events
+        WHERE ts >= ?
+        GROUP BY cwd
+        ORDER BY total DESC
+        """,
+        (_utc_iso(cutoff),),
+    ).fetchall()
+    return [(r[0], float(r[1])) for r in rows]
+
+
 def by_session(conn: sqlite3.Connection, limit: int = 50) -> list[dict]:
     """
     One row per top-level session; subagent costs roll up into their parent.

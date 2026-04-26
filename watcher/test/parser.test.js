@@ -133,6 +133,31 @@ test('parseJsonlSince treats truncated file (offset > size) as reset', () => {
   } finally { rmSync(dir, { recursive: true }); }
 });
 
+test('parser extracts cwd from JSONL when present', () => {
+  const dir = tmp();
+  try {
+    const path = join(dir, 'sess-1.jsonl');
+    const lines = [
+      JSON.stringify({ type: 'user', cwd: '/Users/jondev/dev/socratink', message: { content: 'hi' } }),
+      JSON.stringify(sample({ uuid: 'm-1' })),
+    ];
+    writeFileSync(path, lines.join('\n') + '\n');
+    const out = parseJsonlSince(path, 0);
+    assert.equal(out.records.length, 1);
+    assert.equal(out.records[0].cwd, '/Users/jondev/dev/socratink');
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
+test('parser returns null cwd when not in file', () => {
+  const dir = tmp();
+  try {
+    const path = join(dir, 'sess-1.jsonl');
+    writeFileSync(path, JSON.stringify(sample({ uuid: 'm-1' })) + '\n');
+    const out = parseJsonlSince(path, 0);
+    assert.equal(out.records[0].cwd, null);
+  } finally { rmSync(dir, { recursive: true }); }
+});
+
 test('parseJsonlSince skips assistant lines missing uuid/timestamp/model', () => {
   const dir = tmp();
   try {

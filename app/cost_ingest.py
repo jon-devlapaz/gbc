@@ -22,6 +22,7 @@ class UsageEvent(BaseModel):
     cache_creation_5m_tokens: int = 0
     cache_creation_1h_tokens: int = 0
     cache_read_tokens: int = 0
+    cwd: Optional[str] = None
 
     @field_validator(
         "input_tokens", "output_tokens",
@@ -76,8 +77,8 @@ def register_routes(app: FastAPI, get_db: Callable[[], sqlite3.Connection]) -> N
                   cache_creation_5m_tokens, cache_creation_1h_tokens, cache_read_tokens,
                   input_rate, output_rate,
                   cache_write_5m_rate, cache_write_1h_rate, cache_read_rate,
-                  cost_usd, unknown_pricing
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  cost_usd, cwd, unknown_pricing
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     e.message_uuid, e.session_id, e.parent_session_id, e.jsonl_path, e.ts,
@@ -86,7 +87,7 @@ def register_routes(app: FastAPI, get_db: Callable[[], sqlite3.Connection]) -> N
                     e.cache_creation_5m_tokens, e.cache_creation_1h_tokens, e.cache_read_tokens,
                     rates["input"], rates["output"],
                     rates["cache_write_5m"], rates["cache_write_1h"], rates["cache_read"],
-                    cost_usd, 1 if unknown else 0,
+                    cost_usd, e.cwd, 1 if unknown else 0,
                 ),
             )
             if cur.rowcount == 1:

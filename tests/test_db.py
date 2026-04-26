@@ -65,6 +65,11 @@ def test_cost_events_table_exists(db):
     }.issubset(cols)
 
 
+def test_cost_events_cwd_column_added(db):
+    cols = {row[1] for row in db.execute("PRAGMA table_info(cost_events)")}
+    assert "cwd" in cols
+
+
 def test_cost_events_message_uuid_unique(db):
     db.execute(
         "INSERT INTO cost_events (message_uuid, session_id, jsonl_path, ts, model, "

@@ -1,5 +1,35 @@
-import { existsSync, statSync, openSync, readSync, closeSync } from 'node:fs';
+import { existsSync, statSync, openSync, readSync, closeSync, readFileSync } from 'node:fs';
 import { basename, sep } from 'node:path';
+
+// Cache of JSONL path -> cwd (null if not found)
+const cwdCache = new Map();
+
+/**
+ * Scan up to the first 50 lines of a JSONL file for a top-level `cwd` field.
+ * Caches the result per path so repeated calls are free.
+ */
+function getCwdForFile(path) {
+  if (cwdCache.has(path)) return cwdCache.get(path);
+  let result = null;
+  try {
+    const text = readFileSync(path, 'utf8');
+    const lines = text.split('\n');
+    const limit = Math.min(lines.length, 50);
+    for (let i = 0; i < limit; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      try {
+        const obj = JSON.parse(line);
+        if (obj && typeof obj.cwd === 'string') {
+          result = obj.cwd;
+          break;
+        }
+      } catch { /* skip malformed lines */ }
+    }
+  } catch { /* file unreadable */ }
+  cwdCache.set(path, result);
+  return result;
+}
 
 /**
  * Extract session_id from JSONL path.
@@ -83,5 +113,6 @@ function parseLine(line, path) {
     cache_creation_5m_tokens: cc.ephemeral_5m_input_tokens ?? 0,
     cache_creation_1h_tokens: cc.ephemeral_1h_input_tokens ?? 0,
     cache_read_tokens: u.cache_read_input_tokens ?? 0,
+    cwd: getCwdForFile(path),
   };
 }

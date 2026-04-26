@@ -114,10 +114,20 @@ def init_schema(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def migrate(conn: sqlite3.Connection) -> None:
+    """Idempotent additive migrations beyond CREATE TABLE IF NOT EXISTS."""
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(cost_events)")}
+    if "cwd" not in cols:
+        conn.execute("ALTER TABLE cost_events ADD COLUMN cwd TEXT")
+        conn.execute("CREATE INDEX IF NOT EXISTS cost_events_cwd ON cost_events(cwd)")
+        conn.commit()
+
+
 def connect(db_path: Path) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     init_schema(conn)
+    migrate(conn)
     return conn

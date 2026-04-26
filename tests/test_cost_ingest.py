@@ -113,3 +113,13 @@ def test_ingest_within_batch_duplicate(client):
     body = r.json()
     assert body["inserted"] == 1
     assert body["skipped"] == 1
+
+
+def test_ingest_stores_cwd(client, tmp_path):
+    p = _payload(message_uuid="u-cwd", cwd="/Users/jondev/dev/socratink")
+    r = client.post("/ingest/usage", json={"events": [p]})
+    assert r.status_code == 200
+    import sqlite3
+    db = sqlite3.connect(tmp_path / "data" / "workspace.db")
+    row = db.execute("SELECT cwd FROM cost_events WHERE message_uuid='u-cwd'").fetchone()
+    assert row[0] == "/Users/jondev/dev/socratink"
