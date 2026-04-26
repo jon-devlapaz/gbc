@@ -1,0 +1,14 @@
+{
+  "name": "claude-workspace-tool-watcher",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "ccsniff": "^1.0.17"
+  }
+}

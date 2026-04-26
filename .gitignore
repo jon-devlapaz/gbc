@@ -9,3 +9,4 @@ data/.scan.lock
 !data/.gitkeep
 .env
 *.egg-info/
+node_modules/
