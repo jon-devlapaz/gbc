@@ -8,5 +8,30 @@
        hx-swap="innerHTML">
     {% include "_costs_body.html" %}
   </div>
+
+  <section class="costs-qa">
+    <h3>ASK</h3>
+    <form class="qa-form"
+          hx-post="/costs/ask"
+          hx-target="#qa-result"
+          hx-swap="innerHTML"
+          onsubmit="setTimeout(()=>this.querySelector('input[name=question]').value='',50)">
+      <input type="text"
+             name="question"
+             placeholder="e.g., What did I spend yesterday?"
+             autocomplete="off"
+             required>
+      <button type="submit">ASK</button>
+    </form>
+    <div class="qa-chips">
+      {% for chip in qa_chips %}
+        <button type="button"
+                class="qa-chip"
+                onclick="document.querySelector('.qa-form input[name=question]').value=this.dataset.q;document.querySelector('.qa-form').requestSubmit();"
+                data-q="{{ chip }}">{{ chip }}</button>
+      {% endfor %}
+    </div>
+    <div id="qa-result" class="qa-result"></div>
+  </section>
 </section>
 {% endblock %}

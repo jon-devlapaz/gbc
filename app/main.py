@@ -85,6 +85,13 @@ def create_app() -> FastAPI:
             "by_model": bm_rows,
             "sessions": sessions,
             "unknown_count": unknown_count,
+            "qa_chips": [
+                "What did I spend yesterday?",
+                "Most expensive session this week",
+                "Cost by project this week",
+                "Why did today spike?",
+                "Subagent vs main breakdown",
+            ],
         }
 
     @app.get("/costs", response_class=HTMLResponse)

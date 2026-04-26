@@ -1017,4 +1017,63 @@ button:focus-visible {
   margin: 0.75rem 0;
   font-family: 'VT323', monospace;
 }
+
+/* ============ Cost Q&A box ============ */
+
+.costs-qa { margin-top: 2rem; }
+.qa-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.qa-form input[type=text] {
+  flex: 1;
+  font-family: 'VT323', monospace;
+  font-size: 1.1rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--lcd-3, #9bbc0f);
+  color: var(--lcd-0, #0f380f);
+  border: 2px solid var(--lcd-0, #0f380f);
+}
+.qa-form button {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  padding: 0 1rem;
+  background: var(--lcd-0, #0f380f);
+  color: var(--lcd-3, #9bbc0f);
+  border: 2px solid var(--lcd-0, #0f380f);
+  cursor: pointer;
+}
+.qa-form button:hover { background: var(--lcd-1, #306230); }
+
+.qa-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+.qa-chip {
+  font-family: 'VT323', monospace;
+  font-size: 0.95rem;
+  padding: 0.2rem 0.6rem;
+  background: transparent;
+  color: var(--lcd-0, #0f380f);
+  border: 1px solid var(--lcd-0, #0f380f);
+  cursor: pointer;
+}
+.qa-chip:hover { background: var(--lcd-2, #8bac0f); }
+
+.qa-result { min-height: 1rem; }
+.qa-answer {
+  border: 1px solid var(--lcd-0, #0f380f);
+  background: var(--bezel, #2a3028);
+  color: var(--lcd-3, #9bbc0f);
+  padding: 0.6rem 0.8rem;
+  font-family: 'VT323', monospace;
+  font-size: 1.05rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+.qa-answer .qa-question { color: var(--lcd-2, #8bac0f); margin-bottom: 0.4rem; }
+.qa-answer .qa-meta { font-size: 0.8rem; margin-top: 0.4rem; }
 .muted { opacity: 0.6; }
