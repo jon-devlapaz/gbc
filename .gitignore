@@ -6,6 +6,7 @@ __pycache__/
 data/*.db
 data/*.md
 data/.scan.lock
+data/.watcher-state.json
 !data/.gitkeep
 .env
 *.egg-info/
