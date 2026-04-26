@@ -23,7 +23,7 @@ def make_anthropic_caller() -> Callable[[str], str] | None:
     def call(prompt: str) -> str:
         resp = client.messages.create(
             model=ANTHROPIC_MODEL,
-            max_tokens=120,
+            max_tokens=800,
             messages=[{"role": "user", "content": prompt}],
         )
         return resp.content[0].text.strip()

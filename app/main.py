@@ -5,7 +5,7 @@ import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -98,6 +98,24 @@ def create_app() -> FastAPI:
         conn = get_db()
         ctx = _costs_ctx(conn)
         return templates.TemplateResponse(request, "_costs_body.html", ctx)
+
+    @app.post("/costs/ask", response_class=HTMLResponse)
+    def costs_ask(request: Request, question: str = Form(...)):
+        from app.cost_qa import build_snapshot, ask
+        if not reasoner_call_fn:
+            html = '<div class="qa-answer warn">Reasoner not configured. Set GEMINI_API_KEY or ANTHROPIC_API_KEY in .env.</div>'
+            return HTMLResponse(html)
+        question = question.strip()
+        if not question:
+            return HTMLResponse('<div class="qa-answer muted">Ask a question above.</div>')
+        conn = get_db()
+        snapshot = build_snapshot(conn)
+        try:
+            answer = ask(snapshot, question, reasoner_call_fn)
+        except Exception as e:
+            return HTMLResponse(f'<div class="qa-answer warn">Error: {type(e).__name__}: {e}</div>')
+        ctx = {"request": request, "question": question, "answer": answer, "provider": reasoner_provider}
+        return templates.TemplateResponse(request, "_costs_qa_answer.html", ctx)
 
     @app.get("/health")
     def health():
