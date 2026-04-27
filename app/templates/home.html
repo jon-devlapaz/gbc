@@ -32,17 +32,43 @@
     · <a href="/sessions">browse all →</a>
   </p>
 
-  <h4>Recent</h4>
-  <ul class="entry-list">
-    {% for s in recent_sessions %}
-      <li class="entry">
-        <a class="tree-name tree-name-link" href="/sessions/{{ s.session_id }}">
-          <strong>{{ s.first_prompt or s.session_id }}</strong>
-        </a>
-        <span class="meta">{{ s.family }} · {{ s.started_at }}</span>
-      </li>
-    {% endfor %}
-  </ul>
+  <div class="costs-days sessions-days">
+    <h4>Recent</h4>
+    {% if sessions_by_day %}
+      {% for d in sessions_by_day %}
+        <details class="day-card" {% if loop.first %}open{% endif %}>
+          <summary>
+            <span class="day-toggle">▶</span>
+            <span class="day-date">
+              {{ d.date }}{% if d.date == today_local %} — TODAY{% endif %}
+            </span>
+            <span class="day-total"></span>
+            <span class="day-count">{{ d.session_count }} session{% if d.session_count != 1 %}s{% endif %}</span>
+          </summary>
+          <table class="day-sessions">
+            <thead>
+              <tr><th>STARTED</th><th>FAMILY</th><th>PROMPT</th></tr>
+            </thead>
+            <tbody>
+              {% for s in d.sessions %}
+                <tr>
+                  <td>{{ s.started_at[11:19] }}</td>
+                  <td>{{ s.family or '—' }}</td>
+                  <td>
+                    <a href="/sessions/{{ s.session_id }}">
+                      {{ (s.first_prompt or s.session_id) | truncate(80, True, '…') }}
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </details>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No sessions yet.</p>
+    {% endif %}
+  </div>
 
   <h4>Top families</h4>
   <ul class="entry-list">

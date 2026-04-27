@@ -1187,3 +1187,20 @@ section.costs-summary {
   background: var(--lcd-2, #8bac0f);
 }
 .day-sessions tr:last-child td { border-bottom: none; }
+
+/* sessions-days reuses .day-card but has no $ total column */
+.sessions-days .day-card summary {
+  grid-template-columns: 1.2rem 1fr 8rem;
+}
+.sessions-days .day-total { display: none; }
+.sessions-days .day-sessions th,
+.sessions-days .day-sessions td {
+  padding: 0.3rem 0.6rem;
+  vertical-align: top;
+}
+.sessions-days .day-sessions a {
+  text-decoration: none;
+}
+.sessions-days .day-sessions a:hover {
+  text-decoration: underline;
+}

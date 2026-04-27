@@ -156,10 +156,8 @@ def create_app() -> FastAPI:
             "SELECT id, started_at FROM scans ORDER BY id DESC LIMIT 1"
         ).fetchone()
         session_count = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
-        recent_sessions = [dict(r) for r in conn.execute(
-            "SELECT session_id, family, started_at, first_prompt "
-            "FROM sessions ORDER BY started_at DESC LIMIT 5"
-        ).fetchall()]
+        from app import sessions_query as sessions_query_mod
+        sessions_by_day = sessions_query_mod.by_day(conn, days=14)
         top_families = [dict(r) for r in conn.execute(
             "SELECT family, COUNT(*) AS n FROM sessions "
             "WHERE family IS NOT NULL GROUP BY family ORDER BY n DESC LIMIT 5"
@@ -171,7 +169,8 @@ def create_app() -> FastAPI:
             request, "home.html",
             {**_base_ctx(), "last_scan": last_scan,
              "session_count": session_count,
-             "recent_sessions": recent_sessions,
+             "sessions_by_day": sessions_by_day,
+             "today_local": datetime.now().strftime("%Y-%m-%d"),
              "top_families": top_families,
              "last_index": dict(last_index) if last_index else None},
         )
