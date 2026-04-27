@@ -61,8 +61,19 @@ def create_app() -> FastAPI:
 
     cost_ingest_mod.register_routes(app, get_db)
 
+    def _static_version() -> str:
+        """mtime of style.css → cache-busting query string. Cheap stat per request."""
+        try:
+            return str(int((static_dir / "style.css").stat().st_mtime))
+        except OSError:
+            return "0"
+
     def _base_ctx() -> dict:
-        return {"reasoner_enabled": reasoner_enabled, "reasoner_provider": reasoner_provider}
+        return {
+            "reasoner_enabled": reasoner_enabled,
+            "reasoner_provider": reasoner_provider,
+            "static_version": _static_version(),
+        }
 
     def _costs_ctx(conn) -> dict:
         today = cost_query_mod.today_total(conn)
