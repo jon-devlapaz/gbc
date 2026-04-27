@@ -7,23 +7,43 @@ After updating, run `python -m app.cost_recompute` to backfill any rows
 that were ingested with unknown_pricing=1.
 """
 
+# Per-tier rate templates ($ per 1M tokens). Reused for date-suffixed snapshots.
+_OPUS = {
+    "input": 15.0, "output": 75.0,
+    "cache_write_5m": 18.75, "cache_write_1h": 30.0,
+    "cache_read": 1.5,
+}
+_SONNET = {
+    "input": 3.0, "output": 15.0,
+    "cache_write_5m": 3.75, "cache_write_1h": 6.0,
+    "cache_read": 0.3,
+}
+_HAIKU = {
+    "input": 1.0, "output": 5.0,
+    "cache_write_5m": 1.25, "cache_write_1h": 2.0,
+    "cache_read": 0.1,
+}
+# <synthetic> is a non-billable internal marker that appears in some JSONL
+# events. Stored with explicit zero rates so unknown_pricing=0 — known, free.
+_FREE = {
+    "input": 0.0, "output": 0.0,
+    "cache_write_5m": 0.0, "cache_write_1h": 0.0,
+    "cache_read": 0.0,
+}
+
 # Keys are (model, service_tier). Values are $ per 1M tokens.
 RATES = {
-    ("claude-opus-4-7",   "standard"): {
-        "input": 15.0, "output": 75.0,
-        "cache_write_5m": 18.75, "cache_write_1h": 30.0,
-        "cache_read": 1.5,
-    },
-    ("claude-sonnet-4-6", "standard"): {
-        "input": 3.0, "output": 15.0,
-        "cache_write_5m": 3.75, "cache_write_1h": 6.0,
-        "cache_read": 0.3,
-    },
-    ("claude-haiku-4-5",  "standard"): {
-        "input": 1.0, "output": 5.0,
-        "cache_write_5m": 1.25, "cache_write_1h": 2.0,
-        "cache_read": 0.1,
-    },
+    # Opus
+    ("claude-opus-4-7",            "standard"): _OPUS,
+    ("claude-opus-4-6",            "standard"): _OPUS,
+    # Sonnet
+    ("claude-sonnet-4-6",          "standard"): _SONNET,
+    ("claude-sonnet-4-5-20250929", "standard"): _SONNET,
+    # Haiku
+    ("claude-haiku-4-5",           "standard"): _HAIKU,
+    ("claude-haiku-4-5-20251001",  "standard"): _HAIKU,
+    # Internal markers
+    ("<synthetic>",                "standard"): _FREE,
 }
 
 ZERO_RATES = {
