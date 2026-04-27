@@ -58,7 +58,7 @@ ${{ "%.2f"|format(v) }}
           <tbody>
             {% for s in d.sessions %}
               <tr>
-                <td>{{ s.last_ts[11:19] }}</td>
+                <td>{{ s.last_ts | local_time }}</td>
                 <td>{{ s.session_id[:12] }}{% if s.subagent_count %} <span class="badge">+{{ s.subagent_count }}</span>{% endif %}</td>
                 <td>{{ s.last_model }}</td>
                 <td>{{ fmt_tokens(s.total_tokens) }}</td>

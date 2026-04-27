@@ -1,6 +1,10 @@
 """Display formatters used by Jinja templates."""
 from __future__ import annotations
-from datetime import datetime
+import os
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+DISPLAY_TZ = ZoneInfo(os.environ.get("CLAUDE_TOOL_DISPLAY_TZ", "America/Chicago"))
 
 
 def format_size(n: int | None) -> str:
@@ -43,3 +47,33 @@ def format_age(mtime_iso: str | None, now: datetime | None = None) -> str:
     if days < 365:
         return f"{days // 30}mo ago"
     return f"{days // 365}y ago"
+
+
+def _parse_iso_utc(iso_str: str) -> datetime | None:
+    """Parse an ISO-8601 timestamp; assume UTC if naive or 'Z'-suffixed."""
+    if not iso_str:
+        return None
+    s = iso_str.replace("Z", "+00:00")
+    try:
+        dt = datetime.fromisoformat(s)
+    except (TypeError, ValueError):
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def format_local_time(iso_str: str | None) -> str:
+    """ISO-8601 (UTC) → 'HH:MM:SS' in DISPLAY_TZ. Returns '—' on parse failure."""
+    dt = _parse_iso_utc(iso_str or "")
+    if dt is None:
+        return "—"
+    return dt.astimezone(DISPLAY_TZ).strftime("%H:%M:%S")
+
+
+def format_local_datetime(iso_str: str | None) -> str:
+    """ISO-8601 (UTC) → 'YYYY-MM-DD HH:MM:SS' in DISPLAY_TZ. Returns '—' on parse failure."""
+    dt = _parse_iso_utc(iso_str or "")
+    if dt is None:
+        return "—"
+    return dt.astimezone(DISPLAY_TZ).strftime("%Y-%m-%d %H:%M:%S")

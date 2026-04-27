@@ -52,7 +52,7 @@
             <tbody>
               {% for s in d.sessions %}
                 <tr>
-                  <td>{{ s.started_at[11:19] }}</td>
+                  <td>{{ s.started_at | local_time }}</td>
                   <td>{{ s.family or '—' }}</td>
                   <td>
                     <a href="/sessions/{{ s.session_id }}">

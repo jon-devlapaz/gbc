@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import pytest
-from app.formatting import format_size, format_age
+from app.formatting import format_size, format_age, format_local_time, format_local_datetime
 
 
 @pytest.mark.parametrize("n,expected", [
@@ -35,3 +35,20 @@ def test_format_age_empty():
 
 def test_format_age_malformed():
     assert format_age("not-a-date") == "not-a-date"
+
+
+def test_format_local_time_utc_to_central():
+    # 2026-04-26T05:00:00Z is 00:00 CDT (UTC-5 during DST)
+    assert format_local_time("2026-04-26T05:00:00Z") == "00:00:00"
+    # 2026-04-26T18:30:45Z is 13:30 CDT
+    assert format_local_time("2026-04-26T18:30:45Z") == "13:30:45"
+
+
+def test_format_local_time_handles_empty_and_malformed():
+    assert format_local_time(None) == "—"
+    assert format_local_time("") == "—"
+    assert format_local_time("not-a-date") == "—"
+
+
+def test_format_local_datetime_utc_to_central():
+    assert format_local_datetime("2026-04-26T18:30:45Z") == "2026-04-26 13:30:45"

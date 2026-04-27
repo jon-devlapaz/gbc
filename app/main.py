@@ -3,6 +3,14 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import time
+
+# Display timezone — affects SQLite `date(ts, 'localtime')` grouping AND
+# Python's local datetime.now(). Override with CLAUDE_TOOL_DISPLAY_TZ.
+# Must run before any datetime/sqlite calls in this module.
+os.environ.setdefault("TZ", os.environ.get("CLAUDE_TOOL_DISPLAY_TZ", "America/Chicago"))
+time.tzset()
+
 from datetime import datetime
 from pathlib import Path
 from fastapi import FastAPI, Form, Request
@@ -18,7 +26,7 @@ from app import sessions_query as sessions_query_mod
 from app.classifier import classify
 from app.executor import Executor
 from app.files import FileSafetyError
-from app.formatting import format_age, format_size
+from app.formatting import format_age, format_local_datetime, format_local_time, format_size
 from app.inspector import inspect as inspect_dir
 from app.llm import select_provider
 from app.models import Status
@@ -50,6 +58,8 @@ def create_app() -> FastAPI:
     templates = Jinja2Templates(directory=str(templates_dir))
     templates.env.filters["size"] = format_size
     templates.env.filters["age"] = format_age
+    templates.env.filters["local_time"] = format_local_time
+    templates.env.filters["local_datetime"] = format_local_datetime
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     selected = select_provider()
