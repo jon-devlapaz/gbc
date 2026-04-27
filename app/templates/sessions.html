@@ -14,6 +14,19 @@
   <button type="button" hx-post="/reindex" hx-target="#reindex-result" hx-swap="innerHTML"
           data-tip="rebuild index from scratch">↻ reindex</button>
 </form>
+
+<form method="get" action="/sessions" class="session-search">
+  <input type="search" name="session_id" value="{{ session_id|default('') }}"
+         placeholder="go to session id (or prefix)…" autocomplete="off"
+         data-tip="paste a full or partial session id; unique match jumps to detail">
+  <button type="submit">go →</button>
+</form>
+
+{% if mode == "id-search" %}
+  <p class="muted">
+    {% if rows %}{{ rows|length }} match{% if rows|length != 1 %}es{% endif %} for id prefix <code>{{ session_id }}</code>{% else %}No session id starts with <code>{{ session_id }}</code>.{% endif %}
+  </p>
+{% endif %}
 <div id="reindex-result"></div>
 
 <ul class="entry-list">

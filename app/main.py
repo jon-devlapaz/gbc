@@ -387,14 +387,28 @@ def create_app() -> FastAPI:
         return HTMLResponse(purpose)
 
     @app.get("/sessions", response_class=HTMLResponse)
-    def sessions_list(request: Request, q: str = "", family: str = "", limit: int = 50):
+    def sessions_list(request: Request, q: str = "", family: str = "",
+                      session_id: str = "", limit: int = 50):
+        from fastapi.responses import RedirectResponse
         conn = get_db()
         try:
             reindex(conn, claude_root)
         except Exception:
             pass  # render list even if reindex fails
 
-        if q.strip():
+        sid = session_id.strip()
+        if sid:
+            id_rows = [dict(r) for r in conn.execute(
+                "SELECT session_id, family, cwd, started_at, prompt_count, first_prompt "
+                "FROM sessions WHERE session_id LIKE ? "
+                "ORDER BY started_at DESC LIMIT ?",
+                (sid + "%", limit),
+            ).fetchall()]
+            if len(id_rows) == 1:
+                return RedirectResponse(url=f"/sessions/{id_rows[0]['session_id']}", status_code=302)
+            rows = id_rows
+            mode = "id-search"
+        elif q.strip():
             hits = fts_search(conn, q, family=family or None, limit=limit)
             rows = hits
             mode = "search"
@@ -416,7 +430,7 @@ def create_app() -> FastAPI:
         return templates.TemplateResponse(
             request, "sessions.html",
             {**_base_ctx(), "rows": rows, "mode": mode,
-             "q": q, "family": family, "families": families},
+             "q": q, "session_id": sid, "family": family, "families": families},
         )
 
     @app.get("/sessions/{session_id}", response_class=HTMLResponse)
