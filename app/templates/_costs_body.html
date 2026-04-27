@@ -38,26 +38,38 @@ ${{ "%.2f"|format(v) }}
 <div class="warn">⚠ {{ unknown_count }} events without pricing. Add the model to <code>app/pricing.py</code> and run <code>python -m app.cost_recompute</code>.</div>
 {% endif %}
 
-<div class="costs-sessions">
-  <h3>RECENT SESSIONS</h3>
-  {% if sessions %}
-  <table>
-    <thead>
-      <tr><th>STARTED</th><th>SESSION</th><th>MODEL</th><th>TOKENS</th><th>COST</th></tr>
-    </thead>
-    <tbody>
-      {% for s in sessions %}
-      <tr>
-        <td>{{ s.last_ts }}</td>
-        <td>{{ s.session_id[:12] }}{% if s.subagent_count %} <span class="badge">+{{ s.subagent_count }}</span>{% endif %}</td>
-        <td>{{ s.last_model }}</td>
-        <td>{{ fmt_tokens(s.total_tokens) }}</td>
-        <td>{{ fmt_usd(s.cost_usd) }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="costs-days">
+  <h3>RECENT ACTIVITY</h3>
+  {% if days %}
+    {% for d in days %}
+      <details class="day-card" {% if loop.first %}open{% endif %}>
+        <summary>
+          <span class="day-toggle">▶</span>
+          <span class="day-date">
+            {{ d.date }}{% if d.date == today_local %} — TODAY{% endif %}
+          </span>
+          <span class="day-total">{{ fmt_usd(d.day_total) }}</span>
+          <span class="day-count">{{ d.session_count }} session{% if d.session_count != 1 %}s{% endif %}</span>
+        </summary>
+        <table class="day-sessions">
+          <thead>
+            <tr><th>STARTED</th><th>SESSION</th><th>MODEL</th><th>TOKENS</th><th>COST</th></tr>
+          </thead>
+          <tbody>
+            {% for s in d.sessions %}
+              <tr>
+                <td>{{ s.last_ts[11:19] }}</td>
+                <td>{{ s.session_id[:12] }}{% if s.subagent_count %} <span class="badge">+{{ s.subagent_count }}</span>{% endif %}</td>
+                <td>{{ s.last_model }}</td>
+                <td>{{ fmt_tokens(s.total_tokens) }}</td>
+                <td>{{ fmt_usd(s.cost_usd) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </details>
+    {% endfor %}
   {% else %}
-  <p class="muted">—</p>
+    <p class="muted">No activity yet.</p>
   {% endif %}
 </div>

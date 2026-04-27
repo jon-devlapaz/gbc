@@ -75,6 +75,7 @@ def create_app() -> FastAPI:
             for m, c in bm
         ]
         sessions = cost_query_mod.by_session(conn, limit=50)
+        days_grouped = cost_query_mod.by_day(conn, days=30)
         unknown_count = conn.execute(
             "SELECT COUNT(*) FROM cost_events WHERE unknown_pricing = 1"
         ).fetchone()[0]
@@ -84,6 +85,8 @@ def create_app() -> FastAPI:
             "month_usd": month,
             "by_model": bm_rows,
             "sessions": sessions,
+            "days": days_grouped,
+            "today_local": datetime.now().strftime("%Y-%m-%d"),
             "unknown_count": unknown_count,
             "qa_chips": [
                 "What did I spend yesterday?",

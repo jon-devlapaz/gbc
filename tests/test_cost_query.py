@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
-from app.cost_query import today_total, range_total, by_model, by_session, by_cwd
+from datetime import datetime as _dt, timedelta as _td
+from app.cost_query import today_total, range_total, by_model, by_session, by_cwd, by_day
 
 
 def _insert(db, *, uuid, session, parent=None, ts, model, cost, cwd=None):
@@ -98,3 +99,91 @@ def test_by_cwd_excludes_old_events(db):
     by_key = {c: v for c, v in rows}
     assert "/proj/recent" in by_key
     assert "/proj/old" not in by_key
+
+
+def test_by_day_groups_by_local_date(db):
+    # Two sessions today, one yesterday (UTC times converted to local)
+    now = _dt.now()
+    today = now.strftime("%Y-%m-%d")
+    yest = (now - _td(days=1)).strftime("%Y-%m-%d")
+
+    # Helper inserts ISO ts in UTC; SQLite's date(ts, 'localtime') will convert
+    def _ins(uuid, ts_iso, cost, parent=None, session=None):
+        sess = session or uuid
+        db.execute(
+            "INSERT INTO cost_events (message_uuid, session_id, parent_session_id, jsonl_path, ts, model, "
+            "input_rate, output_rate, cache_write_5m_rate, cache_write_1h_rate, cache_read_rate, cost_usd) "
+            "VALUES (?, ?, ?, '/p', ?, 'm', 0,0,0,0,0, ?)",
+            (uuid, sess, parent, ts_iso, cost),
+        )
+        db.commit()
+
+    # Generate timestamps in UTC such that local-time conversion lands in the
+    # expected day. We use noon UTC which is safe for any timezone offset
+    # within ±12h to land on the same local date.
+    today_ts = (now.astimezone()).strftime("%Y-%m-%dT12:00:00Z")
+    yest_ts = ((now - _td(days=1)).astimezone()).strftime("%Y-%m-%dT12:00:00Z")
+    _ins("u1", today_ts, 1.0, session="s-today-1")
+    _ins("u2", today_ts, 2.0, session="s-today-2")
+    _ins("u3", yest_ts, 3.0, session="s-yest-1")
+
+    result = by_day(db, days=30)
+    by_date = {d["date"]: d for d in result}
+    assert today in by_date
+    assert yest in by_date
+    assert by_date[today]["session_count"] == 2
+    assert by_date[today]["day_total"] == 3.0
+    assert by_date[yest]["session_count"] == 1
+
+
+def test_by_day_includes_subagent_rollup(db):
+    now = _dt.now()
+    today_ts = now.strftime("%Y-%m-%dT12:00:00Z")
+
+    def _ins(uuid, ts, cost, session=None, parent=None):
+        sess = session or uuid
+        db.execute(
+            "INSERT INTO cost_events (message_uuid, session_id, parent_session_id, jsonl_path, ts, model, "
+            "input_rate, output_rate, cache_write_5m_rate, cache_write_1h_rate, cache_read_rate, cost_usd) "
+            "VALUES (?, ?, ?, '/p', ?, 'm', 0,0,0,0,0, ?)",
+            (uuid, sess, parent, ts, cost),
+        )
+        db.commit()
+
+    _ins("u1", today_ts, 5.0, session="parent-1")
+    _ins("u2", today_ts, 1.5, session="agent-x", parent="parent-1")
+    _ins("u3", today_ts, 0.5, session="agent-y", parent="parent-1")
+    _ins("u4", today_ts, 7.0, session="other")
+
+    result = by_day(db, days=30)
+    assert len(result) == 1
+    day = result[0]
+    by_id = {s["session_id"]: s for s in day["sessions"]}
+    assert by_id["parent-1"]["cost_usd"] == 7.0   # 5.0 + 1.5 + 0.5
+    assert by_id["parent-1"]["subagent_count"] == 2
+    assert "agent-x" not in by_id
+    assert "agent-y" not in by_id
+    assert day["day_total"] == 14.0   # 7.0 (parent) + 7.0 (other)
+    assert day["session_count"] == 2
+
+
+def test_by_day_excludes_old_outside_range(db):
+    now = _dt.now()
+    new = now.strftime("%Y-%m-%dT12:00:00Z")
+    old = (now - _td(days=60)).strftime("%Y-%m-%dT12:00:00Z")
+
+    def _ins(uuid, ts, cost):
+        db.execute(
+            "INSERT INTO cost_events (message_uuid, session_id, jsonl_path, ts, model, "
+            "input_rate, output_rate, cache_write_5m_rate, cache_write_1h_rate, cache_read_rate, cost_usd) "
+            "VALUES (?, ?, '/p', ?, 'm', 0,0,0,0,0, ?)",
+            (uuid, uuid, ts, cost),
+        )
+        db.commit()
+
+    _ins("u-new", new, 1.0)
+    _ins("u-old", old, 99.0)
+    result = by_day(db, days=30)
+    dates = [d["date"] for d in result]
+    assert any(d.startswith(now.strftime("%Y-%m")) for d in dates)
+    assert not any(d.startswith((now - _td(days=60)).strftime("%Y-%m")) for d in dates)
