@@ -14,6 +14,7 @@ from app import cost_ingest as cost_ingest_mod
 from app import cost_query as cost_query_mod
 from app import db as db_mod
 from app import files as files_mod
+from app import sessions_query as sessions_query_mod
 from app.classifier import classify
 from app.executor import Executor
 from app.files import FileSafetyError
@@ -85,7 +86,6 @@ def create_app() -> FastAPI:
             {"model": m, "cost_usd": c, "pct": (c / bm_total) * 100}
             for m, c in bm
         ]
-        sessions = cost_query_mod.by_session(conn, limit=50)
         days_grouped = cost_query_mod.by_day(conn, days=30)
         unknown_count = conn.execute(
             "SELECT COUNT(*) FROM cost_events WHERE unknown_pricing = 1"
@@ -95,7 +95,6 @@ def create_app() -> FastAPI:
             "week_usd": week,
             "month_usd": month,
             "by_model": bm_rows,
-            "sessions": sessions,
             "days": days_grouped,
             "today_local": datetime.now().strftime("%Y-%m-%d"),
             "unknown_count": unknown_count,
@@ -156,7 +155,6 @@ def create_app() -> FastAPI:
             "SELECT id, started_at FROM scans ORDER BY id DESC LIMIT 1"
         ).fetchone()
         session_count = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
-        from app import sessions_query as sessions_query_mod
         sessions_by_day = sessions_query_mod.by_day(conn, days=14)
         top_families = [dict(r) for r in conn.execute(
             "SELECT family, COUNT(*) AS n FROM sessions "
